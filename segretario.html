@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css">
+<link rel="stylesheet" href="stile.css?v=2">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -27,6 +27,7 @@
   .sess:hover { border-color: var(--blu); }
   .sess .em { font-size: 24px; }
   .sess b { display: block; }
+  .sess small { color: var(--grigio); font-size: 13px; }
   .sess .cod { margin-left: auto; font-family: ui-monospace, Menlo, monospace; font-weight: 700; color: var(--blu); letter-spacing: 2px; }
 
   /* Sessione */
@@ -65,6 +66,17 @@
   .grande-num { font-size: 76px; font-weight: 900; color: var(--blu-scuro); line-height: 1; margin-top: 18px; }
   .barra { height: 14px; border-radius: 99px; background: #ece7db; overflow: hidden; margin: 14px auto 0; max-width: 520px; }
   .barra i { display: block; height: 100%; background: linear-gradient(90deg, var(--blu), #4f7cf0); transition: width .4s; }
+  .tutti { margin: 22px auto 0; max-width: 620px; padding: 16px 18px; border-radius: 16px; background: var(--verde-chiaro); border: 2px solid var(--verde); color: var(--verde); font-size: 20px; font-weight: 800; }
+  .chi { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px; text-align: left; }
+  @media (max-width: 700px) { .chi { grid-template-columns: 1fr; } }
+  .chi h3 { font-size: 15px; margin: 0 0 8px; }
+  .chi h3.no { color: var(--rosso); }
+  .chi h3.si { color: var(--verde); }
+  .chi .p { padding: 7px 10px; border-radius: 10px; margin-bottom: 5px; font-size: 15px; }
+  .chi .p.no { background: #fdecec; }
+  .chi .p.si { background: var(--verde-chiaro); }
+  .chi .p span { color: var(--grigio); font-size: 12px; margin-left: 6px; }
+  .fine:disabled { background: #b9b3a6; box-shadow: none; }
   .fine { margin-top: 28px; font-size: 24px; padding: 22px 46px; border-radius: 20px; box-shadow: 0 12px 30px -12px var(--rosso); letter-spacing: 1px; }
 
   .riassunto { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0 18px; }
@@ -131,16 +143,26 @@
       </div>
       <label class="etichetta" for="nChiesa" id="nChiesaEt">Nome della chiesa</label>
       <input class="campo" id="nChiesa" placeholder="es. Casentino" autocapitalize="words">
+      <label class="etichetta" for="nRaduno">Nome del raduno</label>
+      <input class="campo" id="nRaduno" placeholder="es. Elezione dei responsabili 2027" autocapitalize="sentences">
+      <label class="etichetta" for="nData">Data</label>
+      <input class="campo" id="nData" type="date">
       <button class="bt largo" id="crea" style="margin-top:16px">Crea la sessione</button>
       <div class="errore" id="creaErr"></div>
     </div>
     <div class="scheda">
-      <h2>Le mie sessioni</h2>
+      <h2>Archivio</h2>
+      <div class="piccolo">Tutti i raduni, dal più recente.</div>
       <div class="elenco-sess" id="mie"></div>
+      <div class="chiave" style="margin-top:18px">Codice del tuo archivio: <code id="codA"></code><br>Conservalo: con questo codice ritrovi tutto l'archivio su un altro computer.</div>
     </div>
     <div class="scheda">
-      <h2>Apri una sessione</h2>
-      <div class="piccolo">Da un altro computer: serve il codice della sessione e il codice del segretario.</div>
+      <h2>Da un altro computer</h2>
+      <label class="etichetta" for="aA">Codice dell'archivio</label>
+      <input class="campo" id="aA" style="text-transform:uppercase;letter-spacing:3px" autocomplete="off" placeholder="XXXX-XXXX-XXXX">
+      <button class="bt largo chiaro" id="apriA" style="margin-top:12px">Apri l'archivio</button>
+      <div class="errore" id="apriAErr"></div>
+      <div class="piccolo" style="margin-top:18px">Oppure una sola sessione: serve il codice della sessione e il codice del segretario.</div>
       <label class="etichetta" for="aS">Codice della sessione</label>
       <input class="campo" id="aS" style="text-transform:uppercase;letter-spacing:3px" maxlength="6" autocomplete="off">
       <label class="etichetta" for="aK">Codice del segretario</label>
@@ -194,8 +216,14 @@
         <div class="grande-num"><span id="cVotati">0</span><span style="font-size:36px;color:var(--grigio)"> / <span id="cTot">0</span></span></div>
         <div class="piccolo" style="font-size:16px">hanno votato</div>
         <div class="barra"><i id="cBarra" style="width:0"></i></div>
-        <p class="piccolo" style="margin-top:14px">I voti restano chiusi nell'urna: si vedono tutti insieme quando premi «Fine votazione».</p>
-        <button class="bt rosso fine" id="fine">FINE VOTAZIONE</button>
+        <div id="cTutti" class="tutti nascosto">✓ Hanno votato tutti. La votazione è finita: puoi chiuderla.</div>
+        <button class="bt rosso fine" id="fine" disabled>FINE VOTAZIONE</button>
+        <div class="piccolo" id="cManca" style="margin-top:10px"></div>
+        <div class="chi">
+          <div><h3 class="no">Non hanno ancora votato (<span id="nNo">0</span>)</h3><div id="lNo"></div></div>
+          <div><h3 class="si">Hanno votato (<span id="nSi">0</span>)</h3><div id="lSi"></div></div>
+        </div>
+        <p class="piccolo" style="margin-top:14px">Qui si vede solo <b>chi</b> ha votato, mai <b>cosa</b> ha votato. I voti restano chiusi nell'urna e si vedono tutti insieme quando premi «Fine votazione».<br>Se qualcuno è andato via e non vota, toglilo dall'elenco dei registrati con la ×.</p>
       </div>
 
       <!-- Risultato -->
@@ -206,6 +234,7 @@
         <div id="rNota"></div>
         <div id="rRighe"></div>
         <button class="bt largo" id="nuova" style="margin-top:12px">+ Nuova votazione</button>
+        <button class="bt largo chiaro nascosto" id="chiudiRis" style="margin-top:10px">Chiudi questa scheda</button>
       </div>
 
       <div class="scheda nascosto" id="pStorico">
@@ -219,31 +248,75 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs';
+import qrcode from './qrcode.mjs?v=2';
 import { db, COLLEGATO, entra, codice, esc, ruoloCompleto, conta,
-         doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js';
+         doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, orderBy, onSnapshot, writeBatch, serverTimestamp }
+  from './comune.js?v=2';
 
 const $ = id => document.getElementById(id);
 function mostra(v) { ['vCarica', 'vHome', 'vSess'].forEach(x => $(x).classList.toggle('nascosto', x !== v)); }
 
 let uid, S, sessione, ascoltatori = [];
-let votazioni = [], nIscritti = 0, nVotati = 0, fermaVotati = null, vista = null;
+let votazioni = [], iscritti = [], votati = new Set(), fermaVotati = null, votatiDi = null;
+let vistaRis = null;          // votazione chiusa di cui si vede la scheda dei risultati
 
-// ---------- Sessioni salvate su questo computer ----------
-const mie = () => JSON.parse(localStorage.getItem('mieSessioni') || '[]');
-function ricorda(s, titolo, chiave, tipo) {
-  const l = mie().filter(x => x.s !== s);
-  l.unshift({ s, titolo, chiave, tipo });
-  localStorage.setItem('mieSessioni', JSON.stringify(l));
+// ---------- Archivio: salvato su Firebase con il codice dell'archivio, e copiato su questo computer ----------
+const leggi = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
+const scrivi = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+let A = leggi('archivio', null);
+if (!A) { A = codice(12); scrivi('archivio', A); }
+const conTrattini = a => a.replace(/(.{4})(?=.)/g, '$1-');
+let archivio = leggi('archivioCopia', []);
+
+// Le sessioni create prima dell'archivio (vecchio elenco «Le mie sessioni») entrano nell'archivio.
+const vecchie = leggi('mieSessioni', []);
+for (const x of vecchie) if (!archivio.some(y => y.s === x.s)) archivio.push({ ...x, raduno: '', data: '' });
+
+function ordina(l) {
+  return l.sort((a, b) => (b.data || '').localeCompare(a.data || '') || (b.creata || 0) - (a.creata || 0));
 }
-function disegnaMie() {
-  const l = mie();
+function dataBella(d) {
+  if (!d) return '';
+  const [y, m, g] = d.split('-').map(Number);
+  return new Date(y, m - 1, g).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function disegnaArchivio() {
+  $('codA').textContent = conTrattini(A);
+  const l = ordina([...archivio]);
   $('mie').innerHTML = l.length ? l.map(x => `<button class="sess" data-s="${esc(x.s)}">
-      <span class="em">${x.tipo === 'assemblea' ? '🏛️' : '⛪'}</span><span><b>${esc(x.titolo)}</b></span><span class="cod">${esc(x.s)}</span></button>`).join('')
-    : '<div class="piccolo">Nessuna sessione ancora.</div>';
+      <span class="em">${x.tipo === 'assemblea' ? '🏛️' : '⛪'}</span>
+      <span><b>${esc(x.raduno || x.titolo)}</b><small>${esc([x.raduno ? x.titolo : '', dataBella(x.data)].filter(Boolean).join(' · '))}</small></span>
+      <span class="cod">${esc(x.s)}</span></button>`).join('')
+    : '<div class="piccolo">Nessun raduno ancora.</div>';
   $('mie').querySelectorAll('.sess').forEach(b => b.onclick = () => apriSessione(b.dataset.s));
 }
+async function caricaArchivio() {
+  const snap = await getDocs(collection(db, 'archivi', A, 'sessioni'));
+  const online = snap.docs.map(d => d.data());
+  // Quello che c'è solo su questo computer va anche online.
+  for (const x of archivio) if (!online.some(y => y.s === x.s)) { online.push(x); salvaInArchivio(x); }
+  archivio = online;
+  scrivi('archivioCopia', archivio);
+  disegnaArchivio();
+}
+function salvaInArchivio(x) {
+  const pulita = { s: x.s, titolo: x.titolo || '', tipo: x.tipo || 'chiesa', raduno: x.raduno || '', data: x.data || '', chiave: x.chiave || '', creata: x.creata || Date.now() };
+  archivio = archivio.filter(y => y.s !== x.s).concat(pulita);
+  scrivi('archivioCopia', archivio);
+  return setDoc(doc(db, 'archivi', A, 'sessioni', x.s), pulita).catch(e => console.warn(e));
+}
+
+$('apriA').onclick = async () => {
+  const a = $('aA').value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  $('apriAErr').textContent = '';
+  if (a.length !== 12) { $('apriAErr').textContent = 'Il codice dell\'archivio ha 12 lettere e numeri.'; return; }
+  const snap = await getDocs(collection(db, 'archivi', a, 'sessioni')).catch(() => null);
+  if (!snap || snap.empty) { $('apriAErr').textContent = 'Archivio non trovato.'; return; }
+  A = a; scrivi('archivio', A);
+  archivio = snap.docs.map(d => d.data()); scrivi('archivioCopia', archivio);
+  $('aA').value = '';
+  disegnaArchivio();
+};
 
 // ---------- Nuova sessione ----------
 let tipo = 'chiesa';
@@ -253,22 +326,27 @@ function aggiornaTipo() {
   $('nChiesa').placeholder = tipo === 'chiesa' ? 'es. Casentino' : 'es. Assemblea dei delegati 2026';
 }
 document.querySelectorAll('.tipo').forEach(b => b.onclick = () => { tipo = b.dataset.tipo; aggiornaTipo(); });
+const oggi = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 $('crea').onclick = async () => {
-  const nome = $('nChiesa').value.trim().replace(/\s+/g, ' ');
+  const pulisci = t => t.trim().replace(/\s+/g, ' ');
+  const nome = pulisci($('nChiesa').value), raduno = pulisci($('nRaduno').value), data = $('nData').value || oggi();
   if (!nome) { $('creaErr').textContent = tipo === 'chiesa' ? 'Scrivi il nome della chiesa.' : 'Scrivi il nome dell\'assemblea.'; return; }
+  if (!raduno) { $('creaErr').textContent = 'Scrivi il nome del raduno.'; return; }
   $('crea').disabled = true; $('creaErr').textContent = '';
+  if (!uid) uid = await entra();
   const titolo = tipo === 'chiesa' ? 'Chiesa ' + nome : nome;
   for (let tentativo = 0; tentativo < 4; tentativo++) {
     const s = codice(6), chiave = codice(10);
     const b = writeBatch(db);
     b.set(doc(db, 'chiavi', s), { chiave });
     b.set(doc(db, 'sessioni', s, 'admin', uid), { chiave });
-    b.set(doc(db, 'sessioni', s), { tipo, titolo, chiesa: tipo === 'chiesa' ? nome : '', creata: serverTimestamp(), corrente: null });
+    b.set(doc(db, 'sessioni', s), { tipo, titolo, chiesa: tipo === 'chiesa' ? nome : '', raduno, data, creata: serverTimestamp(), corrente: null });
     try {
       await b.commit();
-      ricorda(s, titolo, chiave, tipo);
-      $('nChiesa').value = '';
+      segnaAdmin(s);
+      salvaInArchivio({ s, titolo, tipo, raduno, data, chiave });
+      $('nChiesa').value = $('nRaduno').value = ''; $('nData').value = oggi();
       $('crea').disabled = false;
       apriSessione(s);
       return;
@@ -278,108 +356,151 @@ $('crea').onclick = async () => {
   $('creaErr').textContent = 'Non sono riuscito a creare la sessione. Controlla Internet e riprova.';
 };
 
-// ---------- Apri con i codici ----------
+// ---------- Diventare segretario di una sessione su questo computer ----------
+const segnaAdmin = s => scrivi('admin:' + uid + ':' + s, 1);
+async function assicuraAdmin(s, chiave) {
+  if (leggi('admin:' + uid + ':' + s, 0)) return true;
+  const gia = await getDoc(doc(db, 'sessioni', s, 'admin', uid));
+  if (!gia.exists()) {
+    if (!chiave) return false;
+    await setDoc(doc(db, 'sessioni', s, 'admin', uid), { chiave });
+  }
+  segnaAdmin(s);
+  return true;
+}
 $('apri').onclick = async () => {
   const s = $('aS').value.trim().toUpperCase(), chiave = $('aK').value.trim().toUpperCase();
   $('apriErr').textContent = '';
   if (!s || !chiave) { $('apriErr').textContent = 'Scrivi i due codici.'; return; }
   try {
-    const gia = await getDoc(doc(db, 'sessioni', s, 'admin', uid));
-    if (!gia.exists()) await setDoc(doc(db, 'sessioni', s, 'admin', uid), { chiave });
+    await assicuraAdmin(s, chiave);
     const ds = await getDoc(doc(db, 'sessioni', s));
-    ricorda(s, ds.data().titolo, chiave, ds.data().tipo);
+    const d = ds.data();
+    salvaInArchivio({ s, titolo: d.titolo, tipo: d.tipo, raduno: d.raduno || '', data: d.data || '', chiave });
     $('aS').value = $('aK').value = '';
     apriSessione(s);
   } catch (e) { $('apriErr').textContent = 'Codici sbagliati.'; }
 };
 
 // ---------- Sessione aperta ----------
-function chiudiAscolto() { ascoltatori.forEach(f => f()); ascoltatori = []; fermaVotati?.(); fermaVotati = null; }
+function chiudiAscolto() { ascoltatori.forEach(f => f()); ascoltatori = []; fermaVotati?.(); fermaVotati = null; votatiDi = null; }
+
+function intestazione(x) {
+  $('intestazione').textContent = x.raduno || x.titolo;
+  $('sottotitolo').textContent = [x.raduno ? x.titolo : (x.tipo === 'assemblea' ? 'Assemblea dei delegati' : 'Raduno di chiesa'), dataBella(x.data), 'Segretario'].filter(Boolean).join(' · ');
+}
 
 async function apriSessione(s) {
   chiudiAscolto();
-  S = s; vista = null; votazioni = [];
-  mostra('vCarica');
-  const ds = await getDoc(doc(db, 'sessioni', S));
-  sessione = ds.data();
-  const io = mie().find(x => x.s === S);
-  $('intestazione').textContent = sessione.titolo;
-  $('sottotitolo').textContent = sessione.tipo === 'assemblea' ? 'Assemblea dei delegati – Segretario' : 'Raduno di chiesa – Segretario';
+  if (!uid) uid = await entra();
+  S = s; vistaRis = null; votazioni = []; iscritti = []; votati = new Set(); sessione = null;
+  const io = archivio.find(x => x.s === S) || {};
+  // La pagina si apre subito con quello che so già; i dati arrivano mentre la si guarda.
+  intestazione({ titolo: io.titolo || S, raduno: io.raduno, data: io.data, tipo: io.tipo });
   $('tornaHome').classList.remove('nascosto');
-  $('codK').textContent = io?.chiave || '—';
-
+  $('codK').textContent = io.chiave || '—';
   const link = new URL('index.html?s=' + S, location.href).href;
   const q = qrcode(0, 'M'); q.addData(link); q.make();
   const svg = q.createSvgTag({ cellSize: 8, margin: 16, scalable: true });
   $('qr').innerHTML = svg; $('qrGrande').innerHTML = svg;
   $('codS').textContent = S; $('codGrande').textContent = S;
   $('linkS').textContent = link;
+  $('nIscritti').textContent = '…'; $('iscritti').innerHTML = '';
+  ['pNuova', 'pCorso', 'pRis', 'pStorico'].forEach(x => $(x).classList.add('nascosto'));
+  mostra('vSess');
+
+  try { if (!await assicuraAdmin(S, io.chiave)) throw 0; }
+  catch (e) { alert('Su questo computer non sei segretario di questa sessione. Aprila con il codice del segretario.'); $('tornaHome').click(); return; }
+  if (S !== s) return;
 
   ascoltatori.push(onSnapshot(collection(db, 'sessioni', S, 'iscritti'), snap => {
-    const l = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.cognome + a.nome).localeCompare(b.cognome + b.nome, 'it'));
-    nIscritti = l.length;
-    $('nIscritti').textContent = nIscritti;
-    $('iscritti').innerHTML = l.map(r => `<div class="iscritto"><div><b>${esc(r.cognome)} ${esc(r.nome)}</b><span>${esc(ruoloCompleto(r))}</span></div>
+    iscritti = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.cognome + a.nome).localeCompare(b.cognome + b.nome, 'it'));
+    $('nIscritti').textContent = iscritti.length;
+    $('iscritti').innerHTML = iscritti.map(r => `<div class="iscritto"><div><b>${esc(r.cognome)} ${esc(r.nome)}</b><span>${esc(ruoloCompleto(r))}</span></div>
       <button class="togli" type="button" title="Togli dall'elenco" data-id="${esc(r.id)}" data-nome="${esc(r.nome + ' ' + r.cognome)}">×</button></div>`).join('');
     $('iscritti').querySelectorAll('.togli').forEach(b => b.onclick = async () => {
       if (!confirm(`Togliere ${b.dataset.nome} dall'elenco dei registrati?\nSe ha già votato, il suo voto resta (è segreto e non si può riconoscere).`)) return;
       try { await deleteDoc(doc(db, 'sessioni', S, 'iscritti', b.dataset.id)); }
       catch (e) { alert('Non sono riuscito a toglierlo. Riprova.'); }
     });
-    barra();
+    stato();
   }));
-  ascoltatori.push(onSnapshot(doc(db, 'sessioni', S), snap => { sessione = snap.data(); disegna(); }));
+  ascoltatori.push(onSnapshot(doc(db, 'sessioni', S), snap => {
+    sessione = snap.data();
+    intestazione(sessione);
+    // L'archivio si tiene aggiornato con i dati veri della sessione.
+    if (!io.titolo || io.raduno !== (sessione.raduno || '') || io.data !== (sessione.data || ''))
+      salvaInArchivio({ ...io, s: S, titolo: sessione.titolo, tipo: sessione.tipo, raduno: sessione.raduno || '', data: sessione.data || '' });
+    disegna();
+  }));
   ascoltatori.push(onSnapshot(query(collection(db, 'sessioni', S, 'votazioni'), orderBy('n')), snap => {
     votazioni = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     disegna();
   }));
-  mostra('vSess');
 }
 
-function corrente() { return votazioni.find(v => v.id === sessione.corrente); }
+function corrente() { return sessione && votazioni.find(v => v.id === sessione.corrente); }
 
 function disegna() {
   if (!sessione) return;
   const c = corrente();
-  const aperta = c && c.stato === 'aperta';
+  const aperta = c && c.stato === 'aperta' ? c : null;
   $('pCorso').classList.toggle('nascosto', !aperta);
   if (aperta) {
-    if (vista !== 'corso:' + c.id) {
-      vista = 'corso:' + c.id;
-      $('cTit').textContent = c.titolo;
-      $('cScelte').textContent = c.scelte > 1 ? `Ognuno sceglie fino a ${c.scelte} nomi` : 'Ognuno sceglie un nome';
-      $('cNomi').innerHTML = c.candidati.map(n => `<span>${esc(n)}</span>`).join('');
+    if (votatiDi !== aperta.id) {
+      votatiDi = aperta.id; votati = new Set();
+      $('cTit').textContent = aperta.titolo;
+      $('cScelte').textContent = aperta.scelte > 1 ? `Ognuno sceglie fino a ${aperta.scelte} nomi` : 'Ognuno sceglie un nome';
+      $('cNomi').innerHTML = aperta.candidati.map(n => `<span>${esc(n)}</span>`).join('');
       fermaVotati?.();
-      fermaVotati = onSnapshot(collection(db, 'sessioni', S, 'votazioni', c.id, 'votati'), snap => { nVotati = snap.size; barra(); });
+      fermaVotati = onSnapshot(collection(db, 'sessioni', S, 'votazioni', aperta.id, 'votati'), snap => {
+        votati = new Set(snap.docs.map(d => d.id)); stato();
+      });
+      stato();
     }
-    $('pNuova').classList.add('nascosto'); $('pRis').classList.add('nascosto');
-  } else {
-    fermaVotati?.(); fermaVotati = null;
-    if (vista?.startsWith('corso:')) vista = c ? 'ris:' + c.id : null;
-    if (vista?.startsWith('ris:')) mostraRisultato(vista.slice(4));
-    else nuovaVotazione();
-  }
-  // Storico
-  const chiuse = votazioni.filter(v => v.stato === 'chiusa').reverse();
+  } else { fermaVotati?.(); fermaVotati = null; votatiDi = null; }
+
+  if (vistaRis && !votazioni.some(v => v.id === vistaRis && v.stato === 'chiusa')) vistaRis = null;
+  $('pRis').classList.toggle('nascosto', !vistaRis);
+  $('pNuova').classList.toggle('nascosto', !!aperta || !!vistaRis);
+  $('nuova').classList.toggle('nascosto', !!aperta);
+  $('chiudiRis').classList.toggle('nascosto', !aperta);
+  if (vistaRis) mostraRisultato(vistaRis);
+  else if (!aperta) nuovaVotazione();
+
+  // Votazioni di questa sessione: la prima in alto, poi le altre nell'ordine in cui si è votato.
+  const chiuse = votazioni.filter(v => v.stato === 'chiusa');
   $('pStorico').classList.toggle('nascosto', !chiuse.length);
-  $('storico').innerHTML = chiuse.map(v => `<button data-v="${v.id}" class="${vista === 'ris:' + v.id ? 'attivo' : ''}">
+  $('storico').innerHTML = chiuse.map(v => `<button data-v="${v.id}" class="${vistaRis === v.id ? 'attivo' : ''}">
       <b>${v.n}. ${esc(v.titolo)}</b> &nbsp; <span class="vinc">${v.vinti?.length ? '✓ ' + esc(v.vinti.join(', ')) : ''}</span>${v.ballottaggio?.length ? ` <span style="color:#b26b00;font-weight:700">⟳ ballottaggio: ${esc(v.ballottaggio.join(', '))}</span>` : ''}</button>`).join('');
-  $('storico').querySelectorAll('button').forEach(b => b.onclick = () => { if (!aperta) { vista = 'ris:' + b.dataset.v; disegna(); } });
+  $('storico').querySelectorAll('button').forEach(b => b.onclick = () => {
+    vistaRis = b.dataset.v; disegna();
+    $('pRis').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 }
-function barra() {
+
+// Chi ha votato e chi no: si può chiudere solo quando hanno votato tutti i registrati.
+function stato() {
   const c = corrente();
-  const tot = c?.votanti > 0 ? c.votanti : nIscritti;
-  $('cVotati').textContent = nVotati;
+  if (!c || c.stato !== 'aperta') return;
+  const si = iscritti.filter(r => votati.has(r.id)), no = iscritti.filter(r => !votati.has(r.id));
+  const tot = c.votanti > 0 ? c.votanti : iscritti.length;
+  $('cVotati').textContent = votati.size;
   $('cTot').textContent = tot;
-  $('cBarra').style.width = (tot ? Math.min(100, nVotati / tot * 100) : 0) + '%';
+  $('cBarra').style.width = (tot ? Math.min(100, votati.size / tot * 100) : 0) + '%';
+  const riga = (r, cl) => `<div class="p ${cl}">${esc(r.cognome)} ${esc(r.nome)}<span>${esc(ruoloCompleto(r))}</span></div>`;
+  $('nNo').textContent = no.length; $('lNo').innerHTML = no.map(r => riga(r, 'no')).join('');
+  $('nSi').textContent = si.length; $('lSi').innerHTML = si.map(r => riga(r, 'si')).join('');
+  const tutti = iscritti.length > 0 && no.length === 0;
+  $('cTutti').classList.toggle('nascosto', !tutti);
+  $('fine').disabled = !tutti;
+  $('cManca').textContent = tutti ? '' : !iscritti.length ? 'Non c\'è ancora nessun registrato.'
+    : `Non si può ancora chiudere: ${no.length === 1 ? 'manca 1 voto' : `mancano ${no.length} voti`}.`;
 }
 
 // ---------- Nuova votazione ----------
 let nScelte = 1;
 function nuovaVotazione() {
-  vista = 'nuova';
-  $('pRis').classList.add('nascosto');
-  $('pNuova').classList.remove('nascosto');
   if (!$('righe').children.length) { aggiungiRiga(); aggiungiRiga(); }
   if (!$('vNum').value && votazioni.length) $('vNum').value = votazioni[votazioni.length - 1].votanti || '';
 }
@@ -423,42 +544,47 @@ async function apriVotazione(titolo, candidati, scelte, votanti, da) {
   b.set(doc(db, 'sessioni', S, 'votazioni', v), { titolo, candidati, scelte, votanti: votanti || null, stato: 'aperta', n, aperta: serverTimestamp(), ...(da ? { ballottaggioDi: da } : {}) });
   b.set(doc(db, 'sessioni', S, 'urne', v), { schede: {} });
   b.update(doc(db, 'sessioni', S), { corrente: v });
-  try { await b.commit(); nVotati = 0; barra(); return true; }
+  try { await b.commit(); vistaRis = null; disegna(); scrollTo({ top: 0, behavior: 'smooth' }); return true; }
   catch (e) { console.warn(e); return false; }
 }
 
 // ---------- Fine votazione: si apre l'urna ----------
 $('fine').onclick = async () => {
   const c = corrente();
-  if (!c || !confirm(`Chiudere la votazione «${c.titolo}»?\nDopo non si potrà più votare.`)) return;
+  if (!c || $('fine').disabled) return;
+  if (!confirm(`Hanno votato tutti. Chiudere la votazione «${c.titolo}» e vedere i risultati?`)) return;
   $('fine').disabled = true;
   try {
+    const nVotati = votati.size;
     await updateDoc(doc(db, 'sessioni', S, 'votazioni', c.id), { stato: 'chiusa', chiusa: serverTimestamp() });
     const urna = await getDoc(doc(db, 'sessioni', S, 'urne', c.id));
     const schede = Object.values(urna.data().schede || {});
     const r = conta(c, schede);
     await setDoc(doc(db, 'sessioni', S, 'risultati', c.id), { ...r, votati: nVotati });
     await updateDoc(doc(db, 'sessioni', S, 'votazioni', c.id), { vinti: r.vinti.map(i => c.candidati[i]), ballottaggio: r.ballottaggio.map(i => c.candidati[i]) });
-    vista = 'ris:' + c.id;
+    vistaRis = c.id;
     disegna();
-  } catch (e) { console.warn(e); alert('Qualcosa non ha funzionato. Riprova a premere «Fine votazione».'); }
-  $('fine').disabled = false;
+  } catch (e) { console.warn(e); alert('Qualcosa non ha funzionato. Riprova a premere «Fine votazione».'); stato(); }
 };
 
+const risultatiLetti = {};
 async function mostraRisultato(vId) {
   const v = votazioni.find(x => x.id === vId);
   if (!v) return;
-  $('pNuova').classList.add('nascosto');
-  $('pRis').classList.remove('nascosto');
-  const dr = await getDoc(doc(db, 'sessioni', S, 'risultati', vId));
-  if (vista !== 'ris:' + vId) return;
-  let r = dr.data();
+  let r = risultatiLetti[vId];
   if (!r) {
-    // Votazione chiusa ma il conteggio non era stato salvato: lo rifaccio adesso.
-    const urna = await getDoc(doc(db, 'sessioni', S, 'urne', vId));
-    r = conta(v, Object.values(urna.data().schede || {}));
-    await setDoc(doc(db, 'sessioni', S, 'risultati', vId), r).catch(() => {});
+    const dr = await getDoc(doc(db, 'sessioni', S, 'risultati', vId));
+    if (vistaRis !== vId) return;
+    r = dr.data();
+    if (!r) {
+      // Votazione chiusa ma il conteggio non era stato salvato: lo rifaccio adesso.
+      const urna = await getDoc(doc(db, 'sessioni', S, 'urne', vId));
+      r = conta(v, Object.values(urna.data().schede || {}));
+      await setDoc(doc(db, 'sessioni', S, 'risultati', vId), r).catch(() => {});
+    }
+    risultatiLetti[vId] = r;
   }
+  if (vistaRis !== vId) return;
   const arrivate = r.arrivate ?? r.votanti;
   const ballo = r.ballottaggio || [], fuori = r.fuori || [];
   $('rTit').textContent = `${v.n}. ${v.titolo}`;
@@ -474,11 +600,12 @@ async function mostraRisultato(vId) {
   if (r.parita?.length) nota += `<div class="nessuno">Parità tra ${r.parita.map(i => esc(v.candidati[i])).join(', ')}: sono più dei posti da eleggere.</div>`;
   if (ballo.length) {
     const giaFatto = votazioni.some(x => x.ballottaggioDi === vId);
+    const aperta = corrente()?.stato === 'aperta';
     nota += `<div class="ballottaggio"><b class="tit">⟳ VA AL BALLOTTAGGIO</b>
       <p>${r.vinti.length ? 'Per ' + (r.posti > 1 ? `i ${r.posti} posti rimasti` : 'il posto rimasto') : 'Nessuno ha raggiunto la maggioranza'} (servivano ${r.maggioranza} voti).</p>
       <p>Al ballottaggio: <b>${ballo.map(i => esc(v.candidati[i])).join(', ')}</b></p>
       ${fuori.length ? `<p>Fuori: ${fuori.map(i => esc(v.candidati[i])).join(', ')}</p>` : ''}
-      ${giaFatto ? '<p class="piccolo">Il ballottaggio è già stato fatto.</p>' : '<button class="bt arancio" id="avviaBallo" style="margin-top:12px">▶ Avvia il ballottaggio</button>'}</div>`;
+      ${giaFatto ? '<p class="piccolo">Il ballottaggio è già stato fatto.</p>' : aperta ? '' : '<button class="bt arancio" id="avviaBallo" style="margin-top:12px">▶ Avvia il ballottaggio</button>'}</div>`;
   }
   if (v.votanti && arrivate > v.votanti) nota += `<div class="nessuno">Attenzione: sono arrivate ${arrivate} schede ma i votanti scritti sono ${v.votanti}.</div>`;
   if (r.votati !== undefined && arrivate > r.votati) nota += `<div class="nessuno">Attenzione: nell'urna ci sono ${arrivate} schede ma hanno votato ${r.votati} persone.</div>`;
@@ -504,23 +631,27 @@ async function mostraRisultato(vId) {
   }).join('');
 }
 
-$('nuova').onclick = () => { vista = 'nuova'; disegna(); $('vTit').focus(); };
+$('nuova').onclick = () => { vistaRis = null; disegna(); $('vTit').focus(); };
+$('chiudiRis').onclick = () => { vistaRis = null; disegna(); };
 $('tornaHome').onclick = () => {
   chiudiAscolto(); S = null; sessione = null;
   $('tornaHome').classList.add('nascosto');
   $('intestazione').textContent = 'Elezioni – Segretario';
   $('sottotitolo').textContent = 'Programma di votazione segreta';
-  disegnaMie(); mostra('vHome');
+  disegnaArchivio(); mostra('vHome');
+  caricaArchivio().catch(e => console.warn(e));
 };
 $('qr').onclick = () => $('velo').classList.remove('nascosto');
 $('velo').onclick = () => $('velo').classList.add('nascosto');
 
-// ---------- Avvio ----------
+// ---------- Avvio: la pagina compare subito, il collegamento si fa intanto ----------
 (async () => {
   if (!COLLEGATO) { $('vCarica').textContent = 'Il programma non è ancora collegato a Firebase: scrivi i dati nel file config.js.'; return; }
+  aggiornaTipo(); $('nData').value = oggi();
+  disegnaArchivio(); mostra('vHome');
   try { uid = await entra(); }
-  catch (e) { $('vCarica').textContent = 'Non riesco a collegarmi. Controlla Internet e ricarica la pagina.'; return; }
-  aggiornaTipo(); disegnaMie(); mostra('vHome');
+  catch (e) { mostra('vCarica'); $('vCarica').textContent = 'Non riesco a collegarmi. Controlla Internet e ricarica la pagina.'; return; }
+  caricaArchivio().catch(e => console.warn(e));
 })();
 </script>
 </body>

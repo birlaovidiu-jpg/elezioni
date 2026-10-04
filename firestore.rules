@@ -25,6 +25,11 @@ service cloud.firestore {
         && testo(request.resource.data.chiave, 8, 40);
     }
 
+    // Archivio del segretario: solo chi conosce il codice dell'archivio (12 lettere a caso) lo può leggere.
+    match /archivi/{a}/sessioni/{s} {
+      allow read, write: if entrato() && a.size() == 12;
+    }
+
     match /sessioni/{s} {
       allow read: if entrato();
       allow create: if entrato()

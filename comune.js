@@ -1,10 +1,10 @@
 // Parti in comune tra la pagina di chi vota (index.html) e quella del segretario (segretario.html).
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
-import { getAuth, signInAnonymously, onAuthStateChanged, connectAuthEmulator }
+import { getAuth, signInAnonymously, connectAuthEmulator }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
-import { getFirestore, connectFirestoreEmulator }
+import { initializeFirestore, connectFirestoreEmulator }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import { FIREBASE } from './config.js';
+import { FIREBASE } from './config.js?v=2';
 
 export * from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
@@ -16,7 +16,9 @@ let app, auth, db;
 if (COLLEGATO) {
   app = initializeApp(PROVA ? { apiKey: 'prova', projectId: 'demo-elezioni', appId: 'prova' } : FIREBASE);
   auth = getAuth(app);
-  db = getFirestore(app);
+  // Collegamento «a richieste brevi» invece del canale continuo: con alcuni browser e reti (Safari,
+  // antivirus, router) il canale continuo restava fermo anche 30 secondi prima di consegnare i cambiamenti.
+  db = initializeFirestore(app, { experimentalForceLongPolling: true });
   if (PROVA) {
     connectAuthEmulator(auth, `http://${location.hostname}:9099`, { disableWarnings: true });
     connectFirestoreEmulator(db, location.hostname, 8080);
@@ -25,13 +27,14 @@ if (COLLEGATO) {
 export { db };
 
 // Ogni telefono/computer riceve un numero anonimo da Firebase (niente password).
+// Se il numero c'è già (salvato nel browser) si usa subito, senza chiedere niente a Internet.
+let _entrato = null;
 export function entra() {
-  return new Promise((ok, no) => {
-    const stop = onAuthStateChanged(auth, u => {
-      if (u) { stop(); ok(u.uid); }
-    });
-    signInAnonymously(auth).catch(no);
-  });
+  return _entrato ??= (async () => {
+    await auth.authStateReady();
+    if (auth.currentUser) return auth.currentUser.uid;
+    return (await signInAnonymously(auth)).user.uid;
+  })();
 }
 
 // Codici a caso (senza lettere che si confondono: niente 0/O, 1/I/L).
