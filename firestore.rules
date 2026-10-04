@@ -1,0 +1,94 @@
+rules_version = '2';
+
+// Regole del database per il programma Elezioni.
+// Da incollare in Firebase → Firestore Database → Regole → Pubblica.
+//
+// Segretezza del voto:
+//  - la scheda va nell'urna SENZA nome e SENZA ora (una voce con chiave a caso);
+//  - "votati" dice solo CHI ha votato (per non votare due volte), non COSA;
+//  - nessuno può leggere l'urna finché il segretario non preme «Fine votazione».
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function entrato() { return request.auth != null; }
+    function segretario(s) {
+      return entrato() && exists(/databases/$(database)/documents/sessioni/$(s)/admin/$(request.auth.uid));
+    }
+    function testo(x, min, max) { return x is string && x.size() >= min && x.size() <= max; }
+
+    // Codice segreto del segretario per ogni sessione: nessuno lo può leggere.
+    match /chiavi/{s} {
+      allow read: if false;
+      allow create: if entrato()
+        && request.resource.data.keys().hasOnly(['chiave'])
+        && testo(request.resource.data.chiave, 8, 40);
+    }
+
+    match /sessioni/{s} {
+      allow read: if entrato();
+      allow create: if entrato()
+        && existsAfter(/databases/$(database)/documents/sessioni/$(s)/admin/$(request.auth.uid));
+      allow update: if segretario(s);
+
+      // Chi conosce il codice del segretario può diventare segretario (anche da un altro computer).
+      match /admin/{uid} {
+        allow read: if entrato() && request.auth.uid == uid;
+        allow create: if entrato() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['chiave'])
+          && request.resource.data.chiave == getAfter(/databases/$(database)/documents/chiavi/$(s)).data.chiave;
+      }
+
+      // Registrazione di chi vota: nome, cognome, ruolo, chiesa.
+      match /iscritti/{uid} {
+        allow read: if entrato() && (request.auth.uid == uid || segretario(s));
+        allow create, update: if entrato() && request.auth.uid == uid
+          && exists(/databases/$(database)/documents/sessioni/$(s))
+          && request.resource.data.keys().hasOnly(['nome', 'cognome', 'ruolo', 'chiesa', 't'])
+          && testo(request.resource.data.nome, 1, 60)
+          && testo(request.resource.data.cognome, 1, 60)
+          && request.resource.data.ruolo in ['Delegato', 'Membro']
+          && testo(request.resource.data.chiesa, 1, 80);
+        // Il segretario può togliere chi si è registrato per errore.
+        allow delete: if segretario(s);
+      }
+
+      match /votazioni/{v} {
+        allow read: if entrato();
+        allow create, update: if segretario(s);
+
+        // Solo CHI ha votato (vuoto: nessun contenuto).
+        match /votati/{uid} {
+          allow read: if entrato() && (request.auth.uid == uid || segretario(s));
+          allow create: if entrato() && request.auth.uid == uid
+            && request.resource.data.keys().size() == 0
+            && get(/databases/$(database)/documents/sessioni/$(s)/votazioni/$(v)).data.stato == 'aperta'
+            && exists(/databases/$(database)/documents/sessioni/$(s)/iscritti/$(uid));
+        }
+      }
+
+      // L'urna: un solo documento per votazione, le schede sono voci con chiave a caso.
+      match /urne/{v} {
+        allow read: if segretario(s)
+          && get(/databases/$(database)/documents/sessioni/$(s)/votazioni/$(v)).data.stato == 'chiusa';
+        allow create: if segretario(s)
+          && request.resource.data.keys().hasOnly(['schede'])
+          && request.resource.data.schede.size() == 0;
+        // Una scheda sola, messa insieme al segno «ha votato», da chi non aveva ancora votato.
+        allow update: if entrato()
+          && get(/databases/$(database)/documents/sessioni/$(s)/votazioni/$(v)).data.stato == 'aperta'
+          && !exists(/databases/$(database)/documents/sessioni/$(s)/votazioni/$(v)/votati/$(request.auth.uid))
+          && existsAfter(/databases/$(database)/documents/sessioni/$(s)/votazioni/$(v)/votati/$(request.auth.uid))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schede'])
+          && request.resource.data.schede.diff(resource.data.schede).addedKeys().size() == 1
+          && request.resource.data.schede.diff(resource.data.schede).removedKeys().size() == 0
+          && request.resource.data.schede.diff(resource.data.schede).changedKeys().size() == 0;
+      }
+
+      // Risultati salvati dal segretario dopo «Fine votazione».
+      match /risultati/{v} {
+        allow read, write: if segretario(s);
+      }
+    }
+  }
+}

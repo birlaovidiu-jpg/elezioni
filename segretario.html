@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elezioni – Segretario</title>
+<meta name="theme-color" content="#0f1f4d">
+<link rel="icon" href="icona-192.png">
+<link rel="apple-touch-icon" href="icona-180.png">
+<link rel="stylesheet" href="stile.css">
+<style>
+  .testata .destra { margin-left: auto; display: flex; gap: 10px; }
+  .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
+  main { max-width: 1280px; margin: 0 auto; padding: 22px 16px 60px; }
+  h2 { font-size: 21px; margin: 0 0 4px; color: var(--blu-scuro); }
+  .piccolo { color: var(--grigio); font-size: 14px; }
+
+  /* Home */
+  .home { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; align-items: start; }
+  .tipi { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .tipo { padding: 18px 12px; border-radius: 16px; border: 2px solid var(--linea); background: #fbfaf7; text-align: center; }
+  .tipo .em { font-size: 30px; display: block; margin-bottom: 6px; }
+  .tipo b { font-size: 16px; }
+  .tipo.scelto { border-color: var(--blu); background: #e8edfb; }
+  .elenco-sess { display: grid; gap: 10px; margin-top: 14px; }
+  .sess { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 14px; border: 1px solid var(--linea); background: #fbfaf7; text-align: left; width: 100%; }
+  .sess:hover { border-color: var(--blu); }
+  .sess .em { font-size: 24px; }
+  .sess b { display: block; }
+  .sess .cod { margin-left: auto; font-family: ui-monospace, Menlo, monospace; font-weight: 700; color: var(--blu); letter-spacing: 2px; }
+
+  /* Sessione */
+  .griglia { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .griglia { grid-template-columns: 1fr; } }
+  .qr { background: #fff; border-radius: 16px; padding: 10px; border: 1px solid var(--linea); cursor: zoom-in; }
+  .qr svg { width: 100%; height: auto; display: block; }
+  .codice-grande { text-align: center; font-family: ui-monospace, Menlo, monospace; font-size: 30px; font-weight: 800; letter-spacing: 6px; color: var(--blu-scuro); margin-top: 10px; }
+  .link { text-align: center; font-size: 12px; color: var(--grigio); word-break: break-all; }
+  .contatore { display: flex; align-items: baseline; gap: 8px; margin-top: 18px; }
+  .contatore b { font-size: 32px; color: var(--blu-scuro); }
+  .iscritti { max-height: 420px; overflow: auto; margin-top: 8px; border-top: 1px solid var(--linea); }
+  .iscritto { padding: 9px 2px; border-bottom: 1px solid var(--linea); font-size: 15px; }
+  .iscritto { display: flex; align-items: center; gap: 8px; }
+  .iscritto > div { flex: 1; min-width: 0; }
+  .iscritto span { display: block; color: var(--grigio); font-size: 13px; }
+  .iscritto .togli { width: 34px; height: 34px; font-size: 18px; flex: none; border-radius: 10px; }
+  .iscritto .togli:hover { background: #fee2e2; color: var(--rosso); }
+  .chiave { margin-top: 16px; font-size: 13px; color: var(--grigio); }
+  .chiave code { font-weight: 700; color: var(--inchiostro); letter-spacing: 1px; }
+
+  .riga-cand { display: flex; gap: 8px; margin-bottom: 8px; }
+  .riga-cand .campo { flex: 1; }
+  .togli { width: 48px; border: 0; border-radius: 12px; background: #f1ece2; color: var(--grigio); font-size: 22px; }
+  .contapiu { display: inline-flex; align-items: center; gap: 0; border: 1.5px solid var(--linea); border-radius: 12px; overflow: hidden; vertical-align: middle; }
+  .contapiu button { width: 44px; height: 44px; border: 0; background: #f1ece2; font-size: 22px; font-weight: 700; }
+  .contapiu span { min-width: 48px; text-align: center; font-size: 20px; font-weight: 800; }
+
+  .in-corso { text-align: center; }
+  .in-corso .etic { display: inline-block; padding: 6px 14px; border-radius: 99px; background: #fee2e2; color: var(--rosso); font-weight: 800; font-size: 14px; letter-spacing: 1px; }
+  .in-corso .etic::before { content: '● '; animation: lampeggia 1.2s infinite; }
+  @keyframes lampeggia { 50% { opacity: .2; } }
+  .in-corso h2 { font-size: 34px; margin: 14px 0 6px; }
+  .nomi { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 14px 0 6px; }
+  .nomi span { padding: 8px 14px; border-radius: 99px; background: #eef1f9; color: var(--blu-scuro); font-weight: 700; }
+  .grande-num { font-size: 76px; font-weight: 900; color: var(--blu-scuro); line-height: 1; margin-top: 18px; }
+  .barra { height: 14px; border-radius: 99px; background: #ece7db; overflow: hidden; margin: 14px auto 0; max-width: 520px; }
+  .barra i { display: block; height: 100%; background: linear-gradient(90deg, var(--blu), #4f7cf0); transition: width .4s; }
+  .fine { margin-top: 28px; font-size: 24px; padding: 22px 46px; border-radius: 20px; box-shadow: 0 12px 30px -12px var(--rosso); letter-spacing: 1px; }
+
+  .riassunto { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0 18px; }
+  .num { background: #fbfaf7; border: 1px solid var(--linea); border-radius: 14px; padding: 12px 14px; }
+  .num b { display: block; font-size: 28px; color: var(--blu-scuro); }
+  .num span { font-size: 13px; color: var(--grigio); }
+  .ris { display: grid; grid-template-columns: 42px 1fr auto; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 16px; border: 2px solid var(--linea); margin-bottom: 10px; background: #fff; }
+  .ris .pos { width: 42px; height: 42px; border-radius: 50%; background: #eef1f9; display: grid; place-items: center; font-weight: 800; color: var(--blu-scuro); }
+  .ris .n { font-size: 21px; font-weight: 750; }
+  .ris .b { height: 10px; border-radius: 99px; background: #ece7db; margin-top: 8px; overflow: hidden; }
+  .ris .b i { display: block; height: 100%; background: var(--blu); }
+  .ris .v { text-align: right; }
+  .ris .v b { font-size: 30px; display: block; line-height: 1; }
+  .ris .v span { font-size: 13px; color: var(--grigio); }
+  .ris.vinto { background: var(--verde-chiaro); border-color: var(--verde); }
+  .ris.vinto .pos { background: var(--verde); color: #fff; }
+  .ris.vinto .b i { background: var(--verde); }
+  .ris.vinto .n, .ris.vinto .v b { color: var(--verde); }
+  .vinto-etic { display: inline-block; margin-left: 10px; padding: 4px 12px; border-radius: 99px; background: var(--verde); color: #fff; font-size: 15px; font-weight: 900; letter-spacing: 1px; vertical-align: middle; }
+  .ris.ballo { background: #fff7e6; border-color: #e8a33d; }
+  .ris.ballo .pos { background: #e8a33d; color: #fff; }
+  .ris.ballo .b i { background: #e8a33d; }
+  .ris.fuori { opacity: .55; }
+  .ballo-etic { display: inline-block; margin-left: 10px; padding: 4px 12px; border-radius: 99px; background: #e8a33d; color: #fff; font-size: 14px; font-weight: 900; letter-spacing: 1px; vertical-align: middle; }
+  .fuori-etic { display: inline-block; margin-left: 10px; padding: 4px 12px; border-radius: 99px; background: #e5e1d6; color: var(--grigio); font-size: 14px; font-weight: 800; letter-spacing: 1px; vertical-align: middle; }
+  .ballottaggio { padding: 16px 18px; border-radius: 16px; background: #fff3dc; border: 2px solid #e8a33d; margin-bottom: 14px; }
+  .ballottaggio b.tit { display: block; font-size: 20px; color: #9a5b00; letter-spacing: .5px; }
+  .ballottaggio p { margin: 6px 0 0; }
+  .bt.arancio { background: #d4871c; }
+  .nessuno { padding: 14px 16px; border-radius: 14px; background: #fff7e6; border: 1px solid #f1d9a6; font-weight: 600; margin-bottom: 14px; }
+
+  .storico { display: grid; gap: 8px; margin-top: 12px; }
+  .storico button { text-align: left; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--linea); background: #fbfaf7; }
+  .storico button.attivo { border-color: var(--blu); background: #eef1f9; }
+  .storico .vinc { color: var(--verde); font-weight: 700; }
+
+  .velo { position: fixed; inset: 0; background: rgba(255,255,255,.97); display: grid; place-items: center; z-index: 50; cursor: zoom-out; padding: 20px; }
+  .velo .qr-grande { width: min(82vh, 92vw); }
+  .velo .qr-grande svg { width: 100%; height: auto; }
+  .velo .codice-grande { font-size: 48px; }
+</style>
+</head>
+<body>
+<header class="testata">
+  <div class="logo">🗳️</div>
+  <div>
+    <h1 id="intestazione">Elezioni – Segretario</h1>
+    <div class="sotto" id="sottotitolo">Programma di votazione segreta</div>
+  </div>
+  <div class="destra"><button class="bt nascosto" id="tornaHome">← Sessioni</button></div>
+</header>
+
+<main>
+  <section id="vCarica" class="scheda" style="text-align:center">Collegamento…</section>
+
+  <!-- HOME -->
+  <section id="vHome" class="home nascosto">
+    <div class="scheda">
+      <h2>Nuova sessione</h2>
+      <div class="piccolo">Una sessione per ogni assemblea o raduno. Chi vota inquadra il suo QR code.</div>
+      <div class="tipi">
+        <button class="tipo" data-tipo="assemblea" type="button"><span class="em">🏛️</span><b>Assemblea dei delegati</b></button>
+        <button class="tipo" data-tipo="chiesa" type="button"><span class="em">⛪</span><b>Raduno di chiesa</b></button>
+      </div>
+      <label class="etichetta" for="nChiesa" id="nChiesaEt">Nome della chiesa</label>
+      <input class="campo" id="nChiesa" placeholder="es. Casentino" autocapitalize="words">
+      <button class="bt largo" id="crea" style="margin-top:16px">Crea la sessione</button>
+      <div class="errore" id="creaErr"></div>
+    </div>
+    <div class="scheda">
+      <h2>Le mie sessioni</h2>
+      <div class="elenco-sess" id="mie"></div>
+    </div>
+    <div class="scheda">
+      <h2>Apri una sessione</h2>
+      <div class="piccolo">Da un altro computer: serve il codice della sessione e il codice del segretario.</div>
+      <label class="etichetta" for="aS">Codice della sessione</label>
+      <input class="campo" id="aS" style="text-transform:uppercase;letter-spacing:3px" maxlength="6" autocomplete="off">
+      <label class="etichetta" for="aK">Codice del segretario</label>
+      <input class="campo" id="aK" style="text-transform:uppercase;letter-spacing:3px" autocomplete="off">
+      <button class="bt largo chiaro" id="apri" style="margin-top:16px">Apri</button>
+      <div class="errore" id="apriErr"></div>
+    </div>
+  </section>
+
+  <!-- SESSIONE -->
+  <section id="vSess" class="griglia nascosto">
+    <aside class="scheda">
+      <h2 style="text-align:center">Inquadra per votare</h2>
+      <div class="qr" id="qr" title="Ingrandisci"></div>
+      <div class="codice-grande" id="codS"></div>
+      <div class="link" id="linkS"></div>
+      <div class="contatore"><b id="nIscritti">0</b><span class="piccolo">registrati</span></div>
+      <div class="iscritti" id="iscritti"></div>
+      <div class="chiave">Codice del segretario: <code id="codK"></code><br>Serve per aprire questa sessione da un altro computer. Non darlo a nessuno.</div>
+    </aside>
+
+    <div style="display:grid;gap:20px">
+      <!-- Nuova votazione -->
+      <div class="scheda nascosto" id="pNuova">
+        <h2>Nuova votazione</h2>
+        <label class="etichetta" for="vTit">Per cosa si vota</label>
+        <input class="campo" id="vTit" placeholder="es. Anziano di chiesa">
+        <span class="etichetta">Nomi dei candidati</span>
+        <div id="righe"></div>
+        <button class="bt chiaro" id="aggiungi" type="button">+ Aggiungi un nome</button>
+        <div style="margin-top:18px">
+          <span class="piccolo" style="font-size:16px;color:var(--inchiostro)">Ognuno può scegliere</span>
+          <span class="contapiu"><button id="meno" type="button">−</button><span id="nScelte">1</span><button id="piu" type="button">+</button></span>
+          <span class="piccolo" style="font-size:16px;color:var(--inchiostro)" id="nScelteEt">nome</span>
+        </div>
+        <div style="margin-top:16px">
+          <label class="piccolo" style="font-size:16px;color:var(--inchiostro)" for="vNum">Numero dei votanti</label>
+          <input class="campo" id="vNum" type="number" min="1" inputmode="numeric" style="width:120px;display:inline-block;margin-left:8px;text-align:center;font-weight:700">
+          <div class="piccolo" style="margin-top:4px">Per vincere servono più della metà di questo numero. Se lo lasci vuoto, si contano le schede arrivate.</div>
+        </div>
+        <button class="bt largo verde" id="avvia" style="margin-top:22px;font-size:19px;padding:17px">▶ Apri la votazione</button>
+        <div class="errore" id="avviaErr"></div>
+      </div>
+
+      <!-- Votazione in corso -->
+      <div class="scheda in-corso nascosto" id="pCorso">
+        <span class="etic">VOTAZIONE IN CORSO</span>
+        <h2 id="cTit"></h2>
+        <div class="piccolo" id="cScelte"></div>
+        <div class="nomi" id="cNomi"></div>
+        <div class="grande-num"><span id="cVotati">0</span><span style="font-size:36px;color:var(--grigio)"> / <span id="cTot">0</span></span></div>
+        <div class="piccolo" style="font-size:16px">hanno votato</div>
+        <div class="barra"><i id="cBarra" style="width:0"></i></div>
+        <p class="piccolo" style="margin-top:14px">I voti restano chiusi nell'urna: si vedono tutti insieme quando premi «Fine votazione».</p>
+        <button class="bt rosso fine" id="fine">FINE VOTAZIONE</button>
+      </div>
+
+      <!-- Risultato -->
+      <div class="scheda nascosto" id="pRis">
+        <h2 id="rTit"></h2>
+        <div class="piccolo" id="rSotto"></div>
+        <div class="riassunto" id="rNum"></div>
+        <div id="rNota"></div>
+        <div id="rRighe"></div>
+        <button class="bt largo" id="nuova" style="margin-top:12px">+ Nuova votazione</button>
+      </div>
+
+      <div class="scheda nascosto" id="pStorico">
+        <h2>Votazioni di questa sessione</h2>
+        <div class="storico" id="storico"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
+
+<script type="module">
+import qrcode from './qrcode.mjs';
+import { db, COLLEGATO, entra, codice, esc, ruoloCompleto, conta,
+         doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, orderBy, onSnapshot, writeBatch, serverTimestamp }
+  from './comune.js';
+
+const $ = id => document.getElementById(id);
+function mostra(v) { ['vCarica', 'vHome', 'vSess'].forEach(x => $(x).classList.toggle('nascosto', x !== v)); }
+
+let uid, S, sessione, ascoltatori = [];
+let votazioni = [], nIscritti = 0, nVotati = 0, fermaVotati = null, vista = null;
+
+// ---------- Sessioni salvate su questo computer ----------
+const mie = () => JSON.parse(localStorage.getItem('mieSessioni') || '[]');
+function ricorda(s, titolo, chiave, tipo) {
+  const l = mie().filter(x => x.s !== s);
+  l.unshift({ s, titolo, chiave, tipo });
+  localStorage.setItem('mieSessioni', JSON.stringify(l));
+}
+function disegnaMie() {
+  const l = mie();
+  $('mie').innerHTML = l.length ? l.map(x => `<button class="sess" data-s="${esc(x.s)}">
+      <span class="em">${x.tipo === 'assemblea' ? '🏛️' : '⛪'}</span><span><b>${esc(x.titolo)}</b></span><span class="cod">${esc(x.s)}</span></button>`).join('')
+    : '<div class="piccolo">Nessuna sessione ancora.</div>';
+  $('mie').querySelectorAll('.sess').forEach(b => b.onclick = () => apriSessione(b.dataset.s));
+}
+
+// ---------- Nuova sessione ----------
+let tipo = 'chiesa';
+function aggiornaTipo() {
+  document.querySelectorAll('.tipo').forEach(b => b.classList.toggle('scelto', b.dataset.tipo === tipo));
+  $('nChiesaEt').textContent = tipo === 'chiesa' ? 'Nome della chiesa' : 'Nome dell\'assemblea';
+  $('nChiesa').placeholder = tipo === 'chiesa' ? 'es. Casentino' : 'es. Assemblea dei delegati 2026';
+}
+document.querySelectorAll('.tipo').forEach(b => b.onclick = () => { tipo = b.dataset.tipo; aggiornaTipo(); });
+
+$('crea').onclick = async () => {
+  const nome = $('nChiesa').value.trim().replace(/\s+/g, ' ');
+  if (!nome) { $('creaErr').textContent = tipo === 'chiesa' ? 'Scrivi il nome della chiesa.' : 'Scrivi il nome dell\'assemblea.'; return; }
+  $('crea').disabled = true; $('creaErr').textContent = '';
+  const titolo = tipo === 'chiesa' ? 'Chiesa ' + nome : nome;
+  for (let tentativo = 0; tentativo < 4; tentativo++) {
+    const s = codice(6), chiave = codice(10);
+    const b = writeBatch(db);
+    b.set(doc(db, 'chiavi', s), { chiave });
+    b.set(doc(db, 'sessioni', s, 'admin', uid), { chiave });
+    b.set(doc(db, 'sessioni', s), { tipo, titolo, chiesa: tipo === 'chiesa' ? nome : '', creata: serverTimestamp(), corrente: null });
+    try {
+      await b.commit();
+      ricorda(s, titolo, chiave, tipo);
+      $('nChiesa').value = '';
+      $('crea').disabled = false;
+      apriSessione(s);
+      return;
+    } catch (e) { console.warn(e); }
+  }
+  $('crea').disabled = false;
+  $('creaErr').textContent = 'Non sono riuscito a creare la sessione. Controlla Internet e riprova.';
+};
+
+// ---------- Apri con i codici ----------
+$('apri').onclick = async () => {
+  const s = $('aS').value.trim().toUpperCase(), chiave = $('aK').value.trim().toUpperCase();
+  $('apriErr').textContent = '';
+  if (!s || !chiave) { $('apriErr').textContent = 'Scrivi i due codici.'; return; }
+  try {
+    const gia = await getDoc(doc(db, 'sessioni', s, 'admin', uid));
+    if (!gia.exists()) await setDoc(doc(db, 'sessioni', s, 'admin', uid), { chiave });
+    const ds = await getDoc(doc(db, 'sessioni', s));
+    ricorda(s, ds.data().titolo, chiave, ds.data().tipo);
+    $('aS').value = $('aK').value = '';
+    apriSessione(s);
+  } catch (e) { $('apriErr').textContent = 'Codici sbagliati.'; }
+};
+
+// ---------- Sessione aperta ----------
+function chiudiAscolto() { ascoltatori.forEach(f => f()); ascoltatori = []; fermaVotati?.(); fermaVotati = null; }
+
+async function apriSessione(s) {
+  chiudiAscolto();
+  S = s; vista = null; votazioni = [];
+  mostra('vCarica');
+  const ds = await getDoc(doc(db, 'sessioni', S));
+  sessione = ds.data();
+  const io = mie().find(x => x.s === S);
+  $('intestazione').textContent = sessione.titolo;
+  $('sottotitolo').textContent = sessione.tipo === 'assemblea' ? 'Assemblea dei delegati – Segretario' : 'Raduno di chiesa – Segretario';
+  $('tornaHome').classList.remove('nascosto');
+  $('codK').textContent = io?.chiave || '—';
+
+  const link = new URL('index.html?s=' + S, location.href).href;
+  const q = qrcode(0, 'M'); q.addData(link); q.make();
+  const svg = q.createSvgTag({ cellSize: 8, margin: 16, scalable: true });
+  $('qr').innerHTML = svg; $('qrGrande').innerHTML = svg;
+  $('codS').textContent = S; $('codGrande').textContent = S;
+  $('linkS').textContent = link;
+
+  ascoltatori.push(onSnapshot(collection(db, 'sessioni', S, 'iscritti'), snap => {
+    const l = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.cognome + a.nome).localeCompare(b.cognome + b.nome, 'it'));
+    nIscritti = l.length;
+    $('nIscritti').textContent = nIscritti;
+    $('iscritti').innerHTML = l.map(r => `<div class="iscritto"><div><b>${esc(r.cognome)} ${esc(r.nome)}</b><span>${esc(ruoloCompleto(r))}</span></div>
+      <button class="togli" type="button" title="Togli dall'elenco" data-id="${esc(r.id)}" data-nome="${esc(r.nome + ' ' + r.cognome)}">×</button></div>`).join('');
+    $('iscritti').querySelectorAll('.togli').forEach(b => b.onclick = async () => {
+      if (!confirm(`Togliere ${b.dataset.nome} dall'elenco dei registrati?\nSe ha già votato, il suo voto resta (è segreto e non si può riconoscere).`)) return;
+      try { await deleteDoc(doc(db, 'sessioni', S, 'iscritti', b.dataset.id)); }
+      catch (e) { alert('Non sono riuscito a toglierlo. Riprova.'); }
+    });
+    barra();
+  }));
+  ascoltatori.push(onSnapshot(doc(db, 'sessioni', S), snap => { sessione = snap.data(); disegna(); }));
+  ascoltatori.push(onSnapshot(query(collection(db, 'sessioni', S, 'votazioni'), orderBy('n')), snap => {
+    votazioni = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    disegna();
+  }));
+  mostra('vSess');
+}
+
+function corrente() { return votazioni.find(v => v.id === sessione.corrente); }
+
+function disegna() {
+  if (!sessione) return;
+  const c = corrente();
+  const aperta = c && c.stato === 'aperta';
+  $('pCorso').classList.toggle('nascosto', !aperta);
+  if (aperta) {
+    if (vista !== 'corso:' + c.id) {
+      vista = 'corso:' + c.id;
+      $('cTit').textContent = c.titolo;
+      $('cScelte').textContent = c.scelte > 1 ? `Ognuno sceglie fino a ${c.scelte} nomi` : 'Ognuno sceglie un nome';
+      $('cNomi').innerHTML = c.candidati.map(n => `<span>${esc(n)}</span>`).join('');
+      fermaVotati?.();
+      fermaVotati = onSnapshot(collection(db, 'sessioni', S, 'votazioni', c.id, 'votati'), snap => { nVotati = snap.size; barra(); });
+    }
+    $('pNuova').classList.add('nascosto'); $('pRis').classList.add('nascosto');
+  } else {
+    fermaVotati?.(); fermaVotati = null;
+    if (vista?.startsWith('corso:')) vista = c ? 'ris:' + c.id : null;
+    if (vista?.startsWith('ris:')) mostraRisultato(vista.slice(4));
+    else nuovaVotazione();
+  }
+  // Storico
+  const chiuse = votazioni.filter(v => v.stato === 'chiusa').reverse();
+  $('pStorico').classList.toggle('nascosto', !chiuse.length);
+  $('storico').innerHTML = chiuse.map(v => `<button data-v="${v.id}" class="${vista === 'ris:' + v.id ? 'attivo' : ''}">
+      <b>${v.n}. ${esc(v.titolo)}</b> &nbsp; <span class="vinc">${v.vinti?.length ? '✓ ' + esc(v.vinti.join(', ')) : ''}</span>${v.ballottaggio?.length ? ` <span style="color:#b26b00;font-weight:700">⟳ ballottaggio: ${esc(v.ballottaggio.join(', '))}</span>` : ''}</button>`).join('');
+  $('storico').querySelectorAll('button').forEach(b => b.onclick = () => { if (!aperta) { vista = 'ris:' + b.dataset.v; disegna(); } });
+}
+function barra() {
+  const c = corrente();
+  const tot = c?.votanti > 0 ? c.votanti : nIscritti;
+  $('cVotati').textContent = nVotati;
+  $('cTot').textContent = tot;
+  $('cBarra').style.width = (tot ? Math.min(100, nVotati / tot * 100) : 0) + '%';
+}
+
+// ---------- Nuova votazione ----------
+let nScelte = 1;
+function nuovaVotazione() {
+  vista = 'nuova';
+  $('pRis').classList.add('nascosto');
+  $('pNuova').classList.remove('nascosto');
+  if (!$('righe').children.length) { aggiungiRiga(); aggiungiRiga(); }
+  if (!$('vNum').value && votazioni.length) $('vNum').value = votazioni[votazioni.length - 1].votanti || '';
+}
+function aggiungiRiga(valore = '') {
+  const r = document.createElement('div');
+  r.className = 'riga-cand';
+  r.innerHTML = `<input class="campo" placeholder="Nome e cognome" autocapitalize="words"><button class="togli" type="button" title="Togli">×</button>`;
+  r.querySelector('input').value = valore;
+  r.querySelector('input').onkeydown = e => {
+    if (e.key === 'Enter') { e.preventDefault(); const n = aggiungiRiga(); n.focus(); }
+  };
+  r.querySelector('.togli').onclick = () => { r.remove(); if (!$('righe').children.length) aggiungiRiga(); };
+  $('righe').appendChild(r);
+  return r.querySelector('input');
+}
+$('aggiungi').onclick = () => aggiungiRiga().focus();
+function aggiornaScelte() { $('nScelte').textContent = nScelte; $('nScelteEt').textContent = nScelte > 1 ? 'nomi' : 'nome'; }
+$('meno').onclick = () => { nScelte = Math.max(1, nScelte - 1); aggiornaScelte(); };
+$('piu').onclick = () => { nScelte = Math.min(20, nScelte + 1); aggiornaScelte(); };
+
+$('avvia').onclick = async () => {
+  const titolo = $('vTit').value.trim().replace(/\s+/g, ' ');
+  const candidati = [...$('righe').querySelectorAll('input')].map(i => i.value.trim().replace(/\s+/g, ' ')).filter(Boolean);
+  $('avviaErr').textContent = '';
+  if (!titolo) { $('avviaErr').textContent = 'Scrivi per cosa si vota.'; return; }
+  if (!candidati.length) { $('avviaErr').textContent = 'Scrivi almeno un nome.'; return; }
+  if (new Set(candidati.map(n => n.toLowerCase())).size !== candidati.length) { $('avviaErr').textContent = 'C\'è un nome scritto due volte.'; return; }
+  if (nScelte > candidati.length) { $('avviaErr').textContent = 'Non si possono scegliere più nomi di quanti sono i candidati.'; return; }
+  const votanti = $('vNum').value.trim() ? parseInt($('vNum').value, 10) : 0;
+  if ($('vNum').value.trim() && !(votanti > 0)) { $('avviaErr').textContent = 'Il numero dei votanti non è giusto.'; return; }
+  $('avvia').disabled = true;
+  if (await apriVotazione(titolo, candidati, nScelte, votanti)) {
+    $('vTit').value = ''; $('righe').innerHTML = ''; nScelte = 1; aggiornaScelte();
+  } else $('avviaErr').textContent = 'Non sono riuscito ad aprire la votazione. Riprova.';
+  $('avvia').disabled = false;
+};
+async function apriVotazione(titolo, candidati, scelte, votanti, da) {
+  const v = String(Date.now());
+  const n = votazioni.length + 1;
+  const b = writeBatch(db);
+  b.set(doc(db, 'sessioni', S, 'votazioni', v), { titolo, candidati, scelte, votanti: votanti || null, stato: 'aperta', n, aperta: serverTimestamp(), ...(da ? { ballottaggioDi: da } : {}) });
+  b.set(doc(db, 'sessioni', S, 'urne', v), { schede: {} });
+  b.update(doc(db, 'sessioni', S), { corrente: v });
+  try { await b.commit(); nVotati = 0; barra(); return true; }
+  catch (e) { console.warn(e); return false; }
+}
+
+// ---------- Fine votazione: si apre l'urna ----------
+$('fine').onclick = async () => {
+  const c = corrente();
+  if (!c || !confirm(`Chiudere la votazione «${c.titolo}»?\nDopo non si potrà più votare.`)) return;
+  $('fine').disabled = true;
+  try {
+    await updateDoc(doc(db, 'sessioni', S, 'votazioni', c.id), { stato: 'chiusa', chiusa: serverTimestamp() });
+    const urna = await getDoc(doc(db, 'sessioni', S, 'urne', c.id));
+    const schede = Object.values(urna.data().schede || {});
+    const r = conta(c, schede);
+    await setDoc(doc(db, 'sessioni', S, 'risultati', c.id), { ...r, votati: nVotati });
+    await updateDoc(doc(db, 'sessioni', S, 'votazioni', c.id), { vinti: r.vinti.map(i => c.candidati[i]), ballottaggio: r.ballottaggio.map(i => c.candidati[i]) });
+    vista = 'ris:' + c.id;
+    disegna();
+  } catch (e) { console.warn(e); alert('Qualcosa non ha funzionato. Riprova a premere «Fine votazione».'); }
+  $('fine').disabled = false;
+};
+
+async function mostraRisultato(vId) {
+  const v = votazioni.find(x => x.id === vId);
+  if (!v) return;
+  $('pNuova').classList.add('nascosto');
+  $('pRis').classList.remove('nascosto');
+  const dr = await getDoc(doc(db, 'sessioni', S, 'risultati', vId));
+  if (vista !== 'ris:' + vId) return;
+  let r = dr.data();
+  if (!r) {
+    // Votazione chiusa ma il conteggio non era stato salvato: lo rifaccio adesso.
+    const urna = await getDoc(doc(db, 'sessioni', S, 'urne', vId));
+    r = conta(v, Object.values(urna.data().schede || {}));
+    await setDoc(doc(db, 'sessioni', S, 'risultati', vId), r).catch(() => {});
+  }
+  const arrivate = r.arrivate ?? r.votanti;
+  const ballo = r.ballottaggio || [], fuori = r.fuori || [];
+  $('rTit').textContent = `${v.n}. ${v.titolo}`;
+  $('rSotto').textContent = v.scelte > 1 ? `Ognuno poteva scegliere fino a ${v.scelte} nomi` : 'Ognuno poteva scegliere un nome';
+  $('rNum').innerHTML = [
+    [r.votanti, 'votanti'], ...(v.votanti ? [[arrivate, 'schede arrivate']] : []),
+    [r.maggioranza, 'voti per la maggioranza'], [r.bianche, 'schede bianche'],
+    ...(r.nulle ? [[r.nulle, 'schede non valide']] : [])
+  ].map(([n, t]) => `<div class="num"><b>${n}</b><span>${t}</span></div>`).join('');
+  let nota = '';
+  if (!arrivate) nota = '<div class="nessuno">Nessuno ha votato.</div>';
+  else if (!r.vinti.length && !ballo.length && !r.parita?.length) nota = `<div class="nessuno">Nessuno ha raggiunto la maggioranza (servivano ${r.maggioranza} voti).</div>`;
+  if (r.parita?.length) nota += `<div class="nessuno">Parità tra ${r.parita.map(i => esc(v.candidati[i])).join(', ')}: sono più dei posti da eleggere.</div>`;
+  if (ballo.length) {
+    const giaFatto = votazioni.some(x => x.ballottaggioDi === vId);
+    nota += `<div class="ballottaggio"><b class="tit">⟳ VA AL BALLOTTAGGIO</b>
+      <p>${r.vinti.length ? 'Per ' + (r.posti > 1 ? `i ${r.posti} posti rimasti` : 'il posto rimasto') : 'Nessuno ha raggiunto la maggioranza'} (servivano ${r.maggioranza} voti).</p>
+      <p>Al ballottaggio: <b>${ballo.map(i => esc(v.candidati[i])).join(', ')}</b></p>
+      ${fuori.length ? `<p>Fuori: ${fuori.map(i => esc(v.candidati[i])).join(', ')}</p>` : ''}
+      ${giaFatto ? '<p class="piccolo">Il ballottaggio è già stato fatto.</p>' : '<button class="bt arancio" id="avviaBallo" style="margin-top:12px">▶ Avvia il ballottaggio</button>'}</div>`;
+  }
+  if (v.votanti && arrivate > v.votanti) nota += `<div class="nessuno">Attenzione: sono arrivate ${arrivate} schede ma i votanti scritti sono ${v.votanti}.</div>`;
+  if (r.votati !== undefined && arrivate > r.votati) nota += `<div class="nessuno">Attenzione: nell'urna ci sono ${arrivate} schede ma hanno votato ${r.votati} persone.</div>`;
+  $('rNota').innerHTML = nota;
+  $('avviaBallo')?.addEventListener('click', async () => {
+    const nomi = ballo.map(i => v.candidati[i]);
+    if (!confirm(`Aprire il ballottaggio tra:\n${nomi.join('\n')}?`)) return;
+    $('avviaBallo').disabled = true;
+    const titolo = 'Ballottaggio – ' + v.titolo.replace(/^Ballottaggio – /, '');
+    if (!await apriVotazione(titolo, nomi, r.posti, v.votanti, vId)) { $('avviaBallo').disabled = false; alert('Non sono riuscito ad aprire il ballottaggio. Riprova.'); }
+  });
+  const ordine = v.candidati.map((_, i) => i).sort((a, b) => r.voti[b] - r.voti[a]);
+  const max = Math.max(1, ...r.voti);
+  $('rRighe').innerHTML = ordine.map((i, k) => {
+    const vinto = r.vinti.includes(i), alBallo = ballo.includes(i), escluso = fuori.includes(i);
+    const perc = r.votanti ? Math.round(r.voti[i] / r.votanti * 1000) / 10 : 0;
+    const etic = vinto ? '<span class="vinto-etic">HA VINTO</span>' : alBallo ? '<span class="ballo-etic">BALLOTTAGGIO</span>' : escluso ? '<span class="fuori-etic">FUORI</span>' : '';
+    return `<div class="ris ${vinto ? 'vinto' : alBallo ? 'ballo' : escluso ? 'fuori' : ''}">
+      <div class="pos">${k + 1}</div>
+      <div><span class="n">${esc(v.candidati[i])}</span>${etic}
+        <div class="b"><i style="width:${r.voti[i] / max * 100}%"></i></div></div>
+      <div class="v"><b>${r.voti[i]}</b><span>${perc}%</span></div></div>`;
+  }).join('');
+}
+
+$('nuova').onclick = () => { vista = 'nuova'; disegna(); $('vTit').focus(); };
+$('tornaHome').onclick = () => {
+  chiudiAscolto(); S = null; sessione = null;
+  $('tornaHome').classList.add('nascosto');
+  $('intestazione').textContent = 'Elezioni – Segretario';
+  $('sottotitolo').textContent = 'Programma di votazione segreta';
+  disegnaMie(); mostra('vHome');
+};
+$('qr').onclick = () => $('velo').classList.remove('nascosto');
+$('velo').onclick = () => $('velo').classList.add('nascosto');
+
+// ---------- Avvio ----------
+(async () => {
+  if (!COLLEGATO) { $('vCarica').textContent = 'Il programma non è ancora collegato a Firebase: scrivi i dati nel file config.js.'; return; }
+  try { uid = await entra(); }
+  catch (e) { $('vCarica').textContent = 'Non riesco a collegarmi. Controlla Internet e ricarica la pagina.'; return; }
+  aggiornaTipo(); disegnaMie(); mostra('vHome');
+})();
+</script>
+</body>
+</html>
