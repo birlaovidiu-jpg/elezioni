@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=2">
+<link rel="stylesheet" href="stile.css?v=3">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -37,6 +37,10 @@
   .qr svg { width: 100%; height: auto; display: block; }
   .codice-grande { text-align: center; font-family: ui-monospace, Menlo, monospace; font-size: 30px; font-weight: 800; letter-spacing: 6px; color: var(--blu-scuro); margin-top: 10px; }
   .link { text-align: center; font-size: 12px; color: var(--grigio); word-break: break-all; }
+  .votanti-sess { margin-top: 18px; padding: 14px; border-radius: 14px; background: #eef1f9; }
+  .votanti-sess label { display: block; font-weight: 800; color: var(--blu-scuro); margin-bottom: 6px; }
+  .votanti-sess .campo { width: 120px; text-align: center; font-weight: 800; font-size: 20px; }
+  .votanti-sess .piccolo { margin-top: 6px; }
   .contatore { display: flex; align-items: baseline; gap: 8px; margin-top: 18px; }
   .contatore b { font-size: 32px; color: var(--blu-scuro); }
   .iscritti { max-height: 420px; overflow: auto; margin-top: 8px; border-top: 1px solid var(--linea); }
@@ -147,6 +151,9 @@
       <input class="campo" id="nRaduno" placeholder="es. Elezione dei responsabili 2027" autocapitalize="sentences">
       <label class="etichetta" for="nData">Data</label>
       <input class="campo" id="nData" type="date">
+      <label class="etichetta" for="nVotanti">Numero dei votanti</label>
+      <input class="campo" id="nVotanti" type="number" min="1" inputmode="numeric" placeholder="es. 40">
+      <div class="piccolo" style="margin-top:4px">Vale per tutte le votazioni del raduno: per vincere servono più della metà di questo numero. Se lo lasci vuoto, si contano le schede arrivate. Si può cambiare anche dopo.</div>
       <button class="bt largo" id="crea" style="margin-top:16px">Crea la sessione</button>
       <div class="errore" id="creaErr"></div>
     </div>
@@ -179,6 +186,11 @@
       <div class="qr" id="qr" title="Ingrandisci"></div>
       <div class="codice-grande" id="codS"></div>
       <div class="link" id="linkS"></div>
+      <div class="votanti-sess">
+        <label for="sVotanti">Numero dei votanti</label>
+        <input class="campo" id="sVotanti" type="number" min="1" inputmode="numeric" placeholder="—">
+        <div class="piccolo" id="sVotantiNota">Per vincere servono più della metà di questo numero.</div>
+      </div>
       <div class="contatore"><b id="nIscritti">0</b><span class="piccolo">registrati</span></div>
       <div class="iscritti" id="iscritti"></div>
       <div class="chiave">Codice del segretario: <code id="codK"></code><br>Serve per aprire questa sessione da un altro computer. Non darlo a nessuno.</div>
@@ -197,11 +209,6 @@
           <span class="piccolo" style="font-size:16px;color:var(--inchiostro)">Ognuno può scegliere</span>
           <span class="contapiu"><button id="meno" type="button">−</button><span id="nScelte">1</span><button id="piu" type="button">+</button></span>
           <span class="piccolo" style="font-size:16px;color:var(--inchiostro)" id="nScelteEt">nome</span>
-        </div>
-        <div style="margin-top:16px">
-          <label class="piccolo" style="font-size:16px;color:var(--inchiostro)" for="vNum">Numero dei votanti</label>
-          <input class="campo" id="vNum" type="number" min="1" inputmode="numeric" style="width:120px;display:inline-block;margin-left:8px;text-align:center;font-weight:700">
-          <div class="piccolo" style="margin-top:4px">Per vincere servono più della metà di questo numero. Se lo lasci vuoto, si contano le schede arrivate.</div>
         </div>
         <button class="bt largo verde" id="avvia" style="margin-top:22px;font-size:19px;padding:17px">▶ Apri la votazione</button>
         <div class="errore" id="avviaErr"></div>
@@ -248,10 +255,10 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=2';
+import qrcode from './qrcode.mjs?v=3';
 import { db, COLLEGATO, entra, codice, esc, ruoloCompleto, conta,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=2';
+  from './comune.js?v=3';
 
 const $ = id => document.getElementById(id);
 function mostra(v) { ['vCarica', 'vHome', 'vSess'].forEach(x => $(x).classList.toggle('nascosto', x !== v)); }
@@ -331,6 +338,8 @@ const oggi = () => { const d = new Date(); return `${d.getFullYear()}-${String(d
 $('crea').onclick = async () => {
   const pulisci = t => t.trim().replace(/\s+/g, ' ');
   const nome = pulisci($('nChiesa').value), raduno = pulisci($('nRaduno').value), data = $('nData').value || oggi();
+  const votanti = $('nVotanti').value.trim() ? parseInt($('nVotanti').value, 10) : null;
+  if ($('nVotanti').value.trim() && !(votanti > 0)) { $('creaErr').textContent = 'Il numero dei votanti non è giusto.'; return; }
   if (!nome) { $('creaErr').textContent = tipo === 'chiesa' ? 'Scrivi il nome della chiesa.' : 'Scrivi il nome dell\'assemblea.'; return; }
   if (!raduno) { $('creaErr').textContent = 'Scrivi il nome del raduno.'; return; }
   $('crea').disabled = true; $('creaErr').textContent = '';
@@ -341,12 +350,12 @@ $('crea').onclick = async () => {
     const b = writeBatch(db);
     b.set(doc(db, 'chiavi', s), { chiave });
     b.set(doc(db, 'sessioni', s, 'admin', uid), { chiave });
-    b.set(doc(db, 'sessioni', s), { tipo, titolo, chiesa: tipo === 'chiesa' ? nome : '', raduno, data, creata: serverTimestamp(), corrente: null });
+    b.set(doc(db, 'sessioni', s), { tipo, titolo, chiesa: tipo === 'chiesa' ? nome : '', raduno, data, votanti, creata: serverTimestamp(), corrente: null });
     try {
       await b.commit();
       segnaAdmin(s);
       salvaInArchivio({ s, titolo, tipo, raduno, data, chiave });
-      $('nChiesa').value = $('nRaduno').value = ''; $('nData').value = oggi();
+      $('nChiesa').value = $('nRaduno').value = $('nVotanti').value = ''; $('nData').value = oggi();
       $('crea').disabled = false;
       apriSessione(s);
       return;
@@ -428,6 +437,9 @@ async function apriSessione(s) {
   ascoltatori.push(onSnapshot(doc(db, 'sessioni', S), snap => {
     sessione = snap.data();
     intestazione(sessione);
+    if (document.activeElement !== $('sVotanti')) $('sVotanti').value = sessione.votanti || '';
+    notaVotanti();
+    stato();
     // L'archivio si tiene aggiornato con i dati veri della sessione.
     if (!io.titolo || io.raduno !== (sessione.raduno || '') || io.data !== (sessione.data || ''))
       salvaInArchivio({ ...io, s: S, titolo: sessione.titolo, tipo: sessione.tipo, raduno: sessione.raduno || '', data: sessione.data || '' });
@@ -438,6 +450,18 @@ async function apriSessione(s) {
     disegna();
   }));
 }
+
+function notaVotanti() {
+  const n = sessione?.votanti;
+  $('sVotantiNota').textContent = n > 0 ? `Per vincere servono almeno ${Math.floor(n / 2) + 1} voti (più della metà di ${n}).` : 'Vuoto: per vincere servono più della metà delle schede arrivate.';
+}
+$('sVotanti').onchange = async () => {
+  const t = $('sVotanti').value.trim(), n = t ? parseInt(t, 10) : null;
+  if (t && !(n > 0)) { $('sVotanti').value = sessione.votanti || ''; return; }
+  try { await updateDoc(doc(db, 'sessioni', S), { votanti: n }); }
+  catch (e) { alert('Non sono riuscito a salvare il numero dei votanti. Riprova.'); $('sVotanti').value = sessione.votanti || ''; }
+};
+$('sVotanti').onkeydown = e => { if (e.key === 'Enter') $('sVotanti').blur(); };
 
 function corrente() { return sessione && votazioni.find(v => v.id === sessione.corrente); }
 
@@ -484,7 +508,7 @@ function stato() {
   const c = corrente();
   if (!c || c.stato !== 'aperta') return;
   const si = iscritti.filter(r => votati.has(r.id)), no = iscritti.filter(r => !votati.has(r.id));
-  const tot = c.votanti > 0 ? c.votanti : iscritti.length;
+  const tot = sessione.votanti > 0 ? sessione.votanti : iscritti.length;
   $('cVotati').textContent = votati.size;
   $('cTot').textContent = tot;
   $('cBarra').style.width = (tot ? Math.min(100, votati.size / tot * 100) : 0) + '%';
@@ -502,7 +526,6 @@ function stato() {
 let nScelte = 1;
 function nuovaVotazione() {
   if (!$('righe').children.length) { aggiungiRiga(); aggiungiRiga(); }
-  if (!$('vNum').value && votazioni.length) $('vNum').value = votazioni[votazioni.length - 1].votanti || '';
 }
 function aggiungiRiga(valore = '') {
   const r = document.createElement('div');
@@ -529,19 +552,18 @@ $('avvia').onclick = async () => {
   if (!candidati.length) { $('avviaErr').textContent = 'Scrivi almeno un nome.'; return; }
   if (new Set(candidati.map(n => n.toLowerCase())).size !== candidati.length) { $('avviaErr').textContent = 'C\'è un nome scritto due volte.'; return; }
   if (nScelte > candidati.length) { $('avviaErr').textContent = 'Non si possono scegliere più nomi di quanti sono i candidati.'; return; }
-  const votanti = $('vNum').value.trim() ? parseInt($('vNum').value, 10) : 0;
-  if ($('vNum').value.trim() && !(votanti > 0)) { $('avviaErr').textContent = 'Il numero dei votanti non è giusto.'; return; }
   $('avvia').disabled = true;
-  if (await apriVotazione(titolo, candidati, nScelte, votanti)) {
+  if (await apriVotazione(titolo, candidati, nScelte)) {
     $('vTit').value = ''; $('righe').innerHTML = ''; nScelte = 1; aggiornaScelte();
   } else $('avviaErr').textContent = 'Non sono riuscito ad aprire la votazione. Riprova.';
   $('avvia').disabled = false;
 };
-async function apriVotazione(titolo, candidati, scelte, votanti, da) {
+async function apriVotazione(titolo, candidati, scelte, da) {
+  const votanti = sessione.votanti > 0 ? sessione.votanti : null;
   const v = String(Date.now());
   const n = votazioni.length + 1;
   const b = writeBatch(db);
-  b.set(doc(db, 'sessioni', S, 'votazioni', v), { titolo, candidati, scelte, votanti: votanti || null, stato: 'aperta', n, aperta: serverTimestamp(), ...(da ? { ballottaggioDi: da } : {}) });
+  b.set(doc(db, 'sessioni', S, 'votazioni', v), { titolo, candidati, scelte, votanti, stato: 'aperta', n, aperta: serverTimestamp(), ...(da ? { ballottaggioDi: da } : {}) });
   b.set(doc(db, 'sessioni', S, 'urne', v), { schede: {} });
   b.update(doc(db, 'sessioni', S), { corrente: v });
   try { await b.commit(); vistaRis = null; disegna(); scrollTo({ top: 0, behavior: 'smooth' }); return true; }
@@ -556,10 +578,12 @@ $('fine').onclick = async () => {
   $('fine').disabled = true;
   try {
     const nVotati = votati.size;
-    await updateDoc(doc(db, 'sessioni', S, 'votazioni', c.id), { stato: 'chiusa', chiusa: serverTimestamp() });
+    // Il numero dei votanti è quello della sessione al momento della chiusura.
+    const votanti = sessione.votanti > 0 ? sessione.votanti : null;
+    await updateDoc(doc(db, 'sessioni', S, 'votazioni', c.id), { stato: 'chiusa', chiusa: serverTimestamp(), votanti });
     const urna = await getDoc(doc(db, 'sessioni', S, 'urne', c.id));
     const schede = Object.values(urna.data().schede || {});
-    const r = conta(c, schede);
+    const r = conta({ ...c, votanti }, schede);
     await setDoc(doc(db, 'sessioni', S, 'risultati', c.id), { ...r, votati: nVotati });
     await updateDoc(doc(db, 'sessioni', S, 'votazioni', c.id), { vinti: r.vinti.map(i => c.candidati[i]), ballottaggio: r.ballottaggio.map(i => c.candidati[i]) });
     vistaRis = c.id;
@@ -615,7 +639,7 @@ async function mostraRisultato(vId) {
     if (!confirm(`Aprire il ballottaggio tra:\n${nomi.join('\n')}?`)) return;
     $('avviaBallo').disabled = true;
     const titolo = 'Ballottaggio – ' + v.titolo.replace(/^Ballottaggio – /, '');
-    if (!await apriVotazione(titolo, nomi, r.posti, v.votanti, vId)) { $('avviaBallo').disabled = false; alert('Non sono riuscito ad aprire il ballottaggio. Riprova.'); }
+    if (!await apriVotazione(titolo, nomi, r.posti, vId)) { $('avviaBallo').disabled = false; alert('Non sono riuscito ad aprire il ballottaggio. Riprova.'); }
   });
   const ordine = v.candidati.map((_, i) => i).sort((a, b) => r.voti[b] - r.voti[a]);
   const max = Math.max(1, ...r.voti);
