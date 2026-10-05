@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icona-180.png">
 <link rel="icon" href="icona-192.png">
-<link rel="stylesheet" href="stile.css?v=8">
+<link rel="stylesheet" href="stile.css?v=9">
 <style>
   main { max-width: 560px; margin: 0 auto; padding: 18px 16px calc(130px + env(safe-area-inset-bottom)); }
   .titolo-vot { text-align: center; margin: 6px 0 4px; font-size: 26px; font-weight: 800; color: var(--blu-scuro); }
@@ -92,6 +92,15 @@
   .ruolo.scelto { border-color: var(--blu); background: #e8edfb; color: var(--blu-scuro); }
   .anteprima { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: #eef1f9; color: var(--blu-scuro); font-size: 15px; }
 
+  .scansiona { margin-top: 18px; font-size: 20px; padding: 20px; border-radius: 18px; box-shadow: 0 10px 24px -12px var(--verde); }
+  .scansiona span { font-size: 26px; }
+  .oppure { display: flex; align-items: center; gap: 10px; margin: 22px 0 12px; color: var(--grigio); font-size: 14px; }
+  .oppure::before, .oppure::after { content: ''; flex: 1; height: 1px; background: var(--linea); }
+  .camera { position: fixed; inset: 0; z-index: 100; background: #000; display: flex; align-items: center; justify-content: center; }
+  .camera video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .camera .mirino { position: relative; width: min(70vw, 70vh); aspect-ratio: 1; border-radius: 26px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); border: 4px solid #fff; }
+  .camera .cam-testo { position: absolute; top: calc(env(safe-area-inset-top) + 28px); left: 16px; right: 16px; text-align: center; color: #fff; font-size: 19px; font-weight: 700; text-shadow: 0 1px 6px rgba(0,0,0,.6); }
+  .camera .cam-chiudi { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 28px); left: 50%; transform: translateX(-50%); min-width: 200px; }
   .installa { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; padding: 12px 14px; border-radius: 14px; background: #fff; border: 1px solid var(--linea); font-size: 14px; line-height: 1.4; }
   .installa .x { margin-left: auto; border: 0; background: none; font-size: 20px; color: var(--grigio); padding: 4px 6px; }
   .segreto { text-align: center; margin-top: 20px; color: var(--grigio); font-size: 13px; }
@@ -118,9 +127,10 @@
     <div class="scheda stato">
       <img class="logo-attesa piccolo" src="logo.png" alt="">
       <h2>Entra nella votazione</h2>
-      <p>Inquadra con la fotocamera il QR code del segretario,<br>oppure scrivi qui il codice che ti hanno dato:</p>
-      <input class="campo" id="codiceManuale" style="margin-top:16px;text-align:center;text-transform:uppercase;letter-spacing:4px;font-weight:700" maxlength="6" autocomplete="off" placeholder="CODICE">
-      <button class="bt largo" id="vaiCodice" style="margin-top:12px">Entra</button>
+      <button class="bt largo verde scansiona" id="scansiona" type="button"><span>📷</span> Inquadra il QR code</button>
+      <div class="oppure"><span>oppure scrivi il codice</span></div>
+      <input class="campo" id="codiceManuale" style="text-align:center;text-transform:uppercase;letter-spacing:4px;font-weight:700" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="CODICE">
+      <button class="bt largo" id="vaiCodice" style="margin-top:12px">Entra con il codice</button>
       <div class="errore" id="erroreCodice"></div>
     </div>
   </section>
@@ -212,9 +222,17 @@
   </section>
 </main>
 
+<!-- Fotocamera per leggere il QR code -->
+<div id="camera" class="camera nascosto">
+  <video id="video" playsinline muted autoplay></video>
+  <div class="mirino"></div>
+  <div class="cam-testo">Inquadra il QR code del segretario</div>
+  <button class="bt chiaro cam-chiudi" id="chiudiCam" type="button">Annulla</button>
+</div>
+
 <script type="module">
 import { controllaVersione, db, COLLEGATO, entra, idCasuale, esc, iniziali, ruoloCompleto, nomeVotazione, dataBella, COLORI, INCARICHI, TIPI,
-         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=8';
+         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=9';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vSenza', 'vCarica', 'vRegistra', 'vAttesa', 'vVota', 'vVotato', 'vChiusa'];
@@ -265,11 +283,75 @@ async function avvio() {
   bannerInstalla();
 }
 
+function entraCon(c) {
+  localStorage.setItem('sessione', c); $('erroreCodice').textContent = ''; avvio();
+}
 $('vaiCodice').onclick = () => {
   const c = $('codiceManuale').value.trim().toUpperCase();
   if (c.length < 4) { $('erroreCodice').textContent = 'Scrivi il codice.'; return; }
-  localStorage.setItem('sessione', c); $('erroreCodice').textContent = ''; avvio();
+  entraCon(c);
 };
+$('codiceManuale').onkeydown = e => { if (e.key === 'Enter') $('vaiCodice').click(); };
+
+// --- Fotocamera: legge il QR code del segretario ed entra subito ---
+let flusso = null, rilevatore = null, scansiona = false;
+const tela = document.createElement('canvas'), ctx = tela.getContext('2d', { willReadFrequently: true });
+function caricaLettore() {
+  return window.jsQR ? Promise.resolve() : new Promise((ok, no) => {
+    const s = document.createElement('script'); s.src = 'lib/jsQR.js'; s.onload = ok; s.onerror = no; document.head.appendChild(s);
+  });
+}
+// Dal QR (indirizzo con ?s=CODICE) oppure da un codice scritto da solo.
+function codiceDa(t) {
+  if (!t) return null;
+  try { const s = new URL(t).searchParams.get('s'); if (s) return s.toUpperCase(); } catch (e) {}
+  const m = String(t).trim().toUpperCase().match(/^[A-Z0-9]{6}$/);
+  return m ? m[0] : null;
+}
+$('scansiona').onclick = async () => {
+  $('erroreCodice').textContent = '';
+  try {
+    flusso = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+  } catch (e) {
+    $('erroreCodice').textContent = 'Non riesco ad aprire la fotocamera. Dai il permesso alla fotocamera, oppure scrivi il codice.';
+    return;
+  }
+  $('camera').classList.remove('nascosto');
+  const v = $('video'); v.srcObject = flusso; v.play().catch(() => {});
+  try {
+    if ('BarcodeDetector' in window && (await BarcodeDetector.getSupportedFormats()).includes('qr_code'))
+      rilevatore = new BarcodeDetector({ formats: ['qr_code'] });
+  } catch (e) { rilevatore = null; }
+  if (!rilevatore) await caricaLettore().catch(() => {});
+  scansiona = true; leggi();
+};
+function chiudiCamera() {
+  scansiona = false;
+  flusso?.getTracks().forEach(t => t.stop()); flusso = null;
+  $('video').srcObject = null;
+  $('camera').classList.add('nascosto');
+}
+$('chiudiCam').onclick = chiudiCamera;
+async function leggi() {
+  if (!scansiona) return;
+  const v = $('video');
+  if (v.readyState >= 2 && v.videoWidth) {
+    let testo = null;
+    try {
+      if (rilevatore) testo = (await rilevatore.detect(v))[0]?.rawValue;
+      else if (window.jsQR) {
+        const k = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight));
+        tela.width = Math.round(v.videoWidth * k); tela.height = Math.round(v.videoHeight * k);
+        ctx.drawImage(v, 0, 0, tela.width, tela.height);
+        const img = ctx.getImageData(0, 0, tela.width, tela.height);
+        testo = window.jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' })?.data;
+      }
+    } catch (e) {}
+    const c = codiceDa(testo);
+    if (c) { navigator.vibrate?.(80); chiudiCamera(); entraCon(c); return; }
+  }
+  setTimeout(leggi, 150);
+}
 
 // --- Ascolta: i miei dati, la sessione, la votazione aperta ---
 let primoIscritto = true;

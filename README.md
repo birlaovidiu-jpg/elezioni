@@ -8,4 +8,4 @@ Programma di votazione segreta per chiese, assemblea dei delegati, comitati e co
 - **Proiezione:** `proiezione.html?s=CODICE` (si apre dal pulsante «📺 Proiezione» della sessione)
 
 I voti passano da Firebase (progetto `elezioni-sdarm`); le regole di sicurezza sono in `firestore.rules`.
-Rapporto PDF con jsPDF (`lib/`, licenza MIT) e il carattere Inter (`lib/`, licenza SIL OFL 1.1).
+Rapporto PDF con jsPDF (`lib/`, licenza MIT) e il carattere Inter (`lib/`, licenza SIL OFL 1.1); lettura del QR code con jsQR (`lib/`, licenza Apache 2.0) quando il telefono non ha il lettore incorporato.
