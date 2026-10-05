@@ -5,7 +5,7 @@ import { getAuth, signInAnonymously, connectAuthEmulator, signInWithEmailAndPass
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { initializeFirestore, connectFirestoreEmulator, doc, getDoc }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import { FIREBASE } from './config.js?v=5';
+import { FIREBASE } from './config.js?v=6';
 
 export * from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
@@ -49,6 +49,7 @@ export function nomeVotazione(s) {
   return 'Votazione ' + (s.titolo || '');   // sessioni fatte prima dei tipi nuovi
 }
 export const INCARICHI = ['Presidente', 'Vicepresidente', 'Segretario', 'Tesoriere', 'Membro'];
+export const TUTTI_I_TIPI = Object.keys(TIPI);
 
 // ---------- Chi vota: un numero anonimo, niente password ----------
 // Se il numero c'è già (salvato nel browser) si usa subito, senza chiedere niente a Internet.
@@ -73,10 +74,12 @@ export const utenteDa = email => String(email || '').split('@')[0];
 export async function chiSono(u) {
   if (!u || u.isAnonymous || !u.email) return null;
   const utente = utenteDa(u.email);
-  if (utente === DIRETTORE) return { uid: u.uid, utente, nome: 'Ovidio Birla', direttore: true };
+  if (utente === DIRETTORE) return { uid: u.uid, utente, nome: 'Ovidio Birla', direttore: true, tipi: TUTTI_I_TIPI };
   const d = await getDoc(doc(db, 'utenti', u.uid)).catch(() => null);
   if (!d?.exists() || d.data().attivo !== true) return null;
-  return { uid: u.uid, utente, nome: d.data().nome || utente, direttore: false };
+  // Su cosa può lavorare (scelto dal Direttore); chi è stato creato prima dei permessi può tutto.
+  const tipi = Array.isArray(d.data().tipi) ? d.data().tipi.filter(t => TIPI[t]) : TUTTI_I_TIPI;
+  return { uid: u.uid, utente, nome: d.data().nome || utente, direttore: false, tipi };
 }
 export function quandoCambiaAccesso(fn) { return onAuthStateChanged(auth, fn); }
 export async function accedi(utente, password) {

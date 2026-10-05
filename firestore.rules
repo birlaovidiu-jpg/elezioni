@@ -26,9 +26,15 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/utenti/$(request.auth.uid))
         && get(/databases/$(database)/documents/utenti/$(request.auth.uid)).data.attivo == true;
     }
+    // Su quali tipi di sessione può lavorare (assemblea, chiesa, comitato, consiglio): lo sceglie il Direttore.
+    function tipiUtente() {
+      return get(/databases/$(database)/documents/utenti/$(request.auth.uid)).data
+        .get('tipi', ['assemblea', 'chiesa', 'comitato', 'consiglio']);
+    }
     function segretario(s) {
       return direttore() || (utente()
-        && get(/databases/$(database)/documents/sessioni/$(s)).data.get('owner', '') == request.auth.uid);
+        && get(/databases/$(database)/documents/sessioni/$(s)).data.get('owner', '') == request.auth.uid
+        && get(/databases/$(database)/documents/sessioni/$(s)).data.get('tipo', '') in tipiUtente());
     }
     function testo(x, min, max) { return x is string && x.size() >= min && x.size() <= max; }
 
@@ -38,12 +44,20 @@ service cloud.firestore {
       allow write: if direttore();
     }
 
+    // Nome utente e password di ognuno: li legge solo il Direttore.
+    // Ognuno può scrivere i suoi (quando entra o cambia la password), ma non leggerli da qui.
+    match /credenziali/{uid} {
+      allow read: if direttore();
+      allow write: if direttore() || (entrato() && request.auth.uid == uid);
+    }
+
     match /sessioni/{s} {
       // Il codice della sessione basta per leggerla (serve a chi vota);
       // l'elenco delle sessioni invece lo vede solo chi le ha create, e il Direttore.
       allow get: if entrato();
       allow list: if direttore() || (utente() && resource.data.owner == request.auth.uid);
-      allow create: if (direttore() || utente()) && request.resource.data.owner == request.auth.uid;
+      allow create: if request.resource.data.owner == request.auth.uid
+        && (direttore() || (utente() && request.resource.data.tipo in tipiUtente()));
       allow update: if segretario(s)
         && (direttore() || request.resource.data.get('owner', '') == resource.data.get('owner', ''));
 

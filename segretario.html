@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=5">
+<link rel="stylesheet" href="stile.css?v=6">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -186,6 +186,18 @@
   .persona b { display: block; }
   .persona span { font-size: 13px; color: var(--grigio); }
   .persona .bt { padding: 8px 12px; font-size: 13.5px; }
+  .permessi { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .permessi label { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--linea); background: #fbfaf7; font-weight: 600; font-size: 14.5px; cursor: pointer; }
+  .permessi label:has(input:checked) { border-color: var(--blu); background: #e8edfb; color: var(--blu-scuro); }
+  .permessi input { width: 18px; height: 18px; accent-color: var(--blu); }
+  .chip-tipi { display: flex; flex-wrap: wrap; gap: 6px; grid-column: 2; }
+  .chip-tipi button { border: 1.5px solid var(--linea); background: #fbfaf7; border-radius: 99px; padding: 5px 10px; font-size: 13px; font-weight: 600; color: var(--grigio); }
+  .chip-tipi button.on { background: #e8edfb; border-color: var(--blu); color: var(--blu-scuro); }
+  .cred { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--linea); }
+  .cred b { display: block; }
+  .cred .riga-dati { font-size: 14px; color: var(--grigio); }
+  .cred code { font-family: ui-monospace, Menlo, monospace; font-size: 14.5px; color: var(--inchiostro); background: #f1ece2; padding: 2px 8px; border-radius: 6px; }
+  .cred .occhio { border: 1.5px solid var(--linea); background: #fff; border-radius: 10px; padding: 7px 10px; font-size: 15px; }
   .ok { color: var(--verde); font-size: 15px; margin-top: 10px; min-height: 1em; font-weight: 600; }
 </style>
 </head>
@@ -352,9 +364,16 @@
       <input class="campo" id="pUtente" autocapitalize="none" spellcheck="false" autocomplete="off" placeholder="es. mario.rossi">
       <label class="etichetta" for="pPass">Password</label>
       <input class="campo" id="pPass" type="text" autocomplete="off" spellcheck="false" placeholder="almeno 6 caratteri">
+      <span class="etichetta">Può vedere e lavorare su</span>
+      <div class="permessi" id="pTipi"></div>
       <button class="bt largo" id="pAggiungiBt" style="margin-top:16px">Aggiungi</button>
       <div class="errore" id="pErr"></div>
       <div class="ok" id="pOk"></div>
+    </div>
+    <div class="scheda nascosto" id="pCredenziali">
+      <h2>Credenziali</h2>
+      <div class="piccolo">Nome utente e password di tutti. Le vedi solo tu. Premi 👁 per vedere una password.</div>
+      <div id="credenziali" style="margin-top:8px"></div>
     </div>
     <div class="scheda">
       <h2>La mia password</h2>
@@ -374,12 +393,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=5';
-import { creaRapporto } from './rapporto.js?v=5';
-import { db, COLLEGATO, CHIESA, TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
+import qrcode from './qrcode.mjs?v=6';
+import { creaRapporto } from './rapporto.js?v=6';
+import { db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=5';
+  from './comune.js?v=6';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
@@ -424,6 +443,7 @@ $('aEntra').onclick = async () => {
       if (p !== $('aPass2').value) throw { code: 'diverse' };
       await creaDirettore(p);
     } else await accedi(u, p);
+    salvaCredenziali(u, p);
     $('aPass').value = $('aPass2').value = '';
   } catch (e) {
     $('aErr').textContent = e.code === 'diverse' ? 'Le due password non sono uguali.'
@@ -433,7 +453,11 @@ $('aEntra').onclick = async () => {
   }
   $('aEntra').disabled = false;
 };
-$('esci').onclick = async () => { chiudiAscolto(); fermaArchivio?.(); fermaPersone?.(); await esci(); };
+// Il Direttore vede nome utente e password di tutti: ognuno li salva quando entra o cambia la password.
+function salvaCredenziali(utente, password, uid = auth.currentUser?.uid) {
+  if (uid) setDoc(doc(db, 'credenziali', uid), { utente, password, quando: serverTimestamp() }).catch(e => console.warn(e));
+}
+$('esci').onclick = async () => { chiudiAscolto(); fermaArchivio?.(); fermaPersone?.(); fermaCred?.(); credVisibili.clear(); await esci(); };
 
 quandoCambiaAccesso(async u => {
   io = await chiSono(u);
@@ -445,6 +469,8 @@ quandoCambiaAccesso(async u => {
   $('chiSono').innerHTML = `<b>${esc(io.nome)}</b>${io.direttore ? 'Direttore' : 'Segretario'}`;
   $('pPersone').classList.toggle('nascosto', !io.direttore);
   $('pAggiungi').classList.toggle('nascosto', !io.direttore);
+  $('pCredenziali').classList.toggle('nascosto', !io.direttore);
+  disegnaTipi();
   avviaArchivio();
   if (io.direttore) avviaPersone();
   vaiArchivio();
@@ -485,7 +511,7 @@ function disegnaArchivio() {
     $('filtri').querySelectorAll('button').forEach(b => b.onclick = () => { filtro = b.dataset.k; disegnaArchivio(); });
     $('archivioSotto').textContent = 'I raduni di tutti, dal più recente. Scegli una persona per vedere solo i suoi.';
   }
-  let l = sessioni.filter(x => !io.direttore || filtro === 'tutti' || (x.owner || '') === filtro);
+  let l = sessioni.filter(x => io.direttore ? (filtro === 'tutti' || (x.owner || '') === filtro) : io.tipi.includes(x.tipo));
   l.sort((a, b) => (b.data || '').localeCompare(a.data || '') || (b.creata?.seconds || 0) - (a.creata?.seconds || 0));
   $('mie').innerHTML = l.length ? l.map(x => `<button class="sess" data-s="${esc(x.s)}">
       <span class="riga1"><span class="em">${TIPI[x.tipo]?.em || '🗳️'}</span><span class="tipo-et">${esc(TIPI[x.tipo]?.nome || '')}</span><span class="cod">${esc(x.s)}</span></span>
@@ -498,7 +524,14 @@ function disegnaArchivio() {
 
 // ---------- Nuova sessione ----------
 let tipo = 'chiesa';
-$('tipi').innerHTML = Object.entries(TIPI).map(([k, t]) => `<button class="tipo" data-tipo="${k}" type="button"><span class="em">${t.em}</span><b>${t.nome}</b></button>`).join('');
+// Nuova sessione: solo i tipi su cui questa persona può lavorare.
+function disegnaTipi() {
+  const ammessi = io?.tipi || TUTTI_I_TIPI;
+  if (!ammessi.includes(tipo)) tipo = ammessi[0];
+  $('tipi').innerHTML = ammessi.map(k => `<button class="tipo" data-tipo="${k}" type="button"><span class="em">${TIPI[k].em}</span><b>${TIPI[k].nome}</b></button>`).join('');
+  document.querySelectorAll('.tipo').forEach(b => b.onclick = () => { tipo = b.dataset.tipo; aggiornaTipo(); });
+  aggiornaTipo();
+}
 function aggiornaTipo() {
   document.querySelectorAll('.tipo').forEach(b => b.classList.toggle('scelto', b.dataset.tipo === tipo));
   $('nNomeEt').textContent = TIPI[tipo].etichetta;
@@ -506,10 +539,9 @@ function aggiornaTipo() {
   anteprima();
 }
 function anteprima() { $('nAnteprima').textContent = nomeVotazione({ tipo, nome: $('nNome').value.trim() || '…' }); }
-document.querySelectorAll('.tipo').forEach(b => b.onclick = () => { tipo = b.dataset.tipo; aggiornaTipo(); });
 $('nNome').oninput = anteprima;
 const oggi = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-aggiornaTipo(); $('nData').value = oggi();
+disegnaTipi(); $('nData').value = oggi();
 
 $('crea').onclick = async () => {
   const pulisci = t => t.trim().replace(/\s+/g, ' ');
@@ -811,12 +843,33 @@ $('btRapporto').onclick = async () => {
 };
 
 // ---------- Impostazioni: persone (solo il Direttore) ----------
+const PLURALI = { assemblea: 'Assemblee', chiesa: 'Raduni di chiesa', comitato: 'Comitati', consiglio: 'Consigli' };
+$('pTipi').innerHTML = TUTTI_I_TIPI.map(k => `<label><input type="checkbox" value="${k}" checked>${TIPI[k].em} ${PLURALI[k]}</label>`).join('');
+let credenziali = {}, fermaCred = null, credVisibili = new Set();
 function avviaPersone() {
-  fermaPersone?.();
+  fermaPersone?.(); fermaCred?.();
   fermaPersone = onSnapshot(collection(db, 'utenti'), snap => {
     persone = snap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'it'));
     disegnaPersone(); disegnaArchivio();
   }, e => console.warn(e));
+  fermaCred = onSnapshot(collection(db, 'credenziali'), snap => {
+    credenziali = Object.fromEntries(snap.docs.map(d => [d.id, d.data()]));
+    disegnaCredenziali();
+  }, e => console.warn(e));
+}
+function disegnaCredenziali() {
+  if (!io?.direttore) return;
+  const righe = [{ uid: io.uid, nome: io.nome + ' (tu)', utente: io.utente }, ...persone.map(p => ({ uid: p.uid, nome: p.nome, utente: p.utente, spento: !p.attivo }))];
+  $('credenziali').innerHTML = righe.map(r => {
+    const c = credenziali[r.uid], vedo = credVisibili.has(r.uid);
+    const pw = !c ? '<i>non ancora salvata: si salva al prossimo accesso</i>' : `<code>${vedo ? esc(c.password) : '••••••••'}</code>`;
+    return `<div class="cred"><div><b>${esc(r.nome)}${r.spento ? ' <span style="color:var(--rosso);font-size:13px">(disattivato)</span>' : ''}</b>
+      <div class="riga-dati">nome utente <code>${esc(c?.utente || r.utente)}</code> · password ${pw}</div></div>
+      ${c ? `<button class="occhio" data-occhio="${r.uid}" title="${vedo ? 'Nascondi' : 'Mostra'}">${vedo ? '🙈' : '👁'}</button>` : '<span></span>'}</div>`;
+  }).join('');
+  $('credenziali').querySelectorAll('[data-occhio]').forEach(b => b.onclick = () => {
+    const k = b.dataset.occhio; credVisibili.has(k) ? credVisibili.delete(k) : credVisibili.add(k); disegnaCredenziali();
+  });
 }
 function disegnaPersone() {
   if (!io?.direttore) return;
@@ -824,10 +877,19 @@ function disegnaPersone() {
   $('persone').innerHTML = persone.length ? persone.map(p => `<div class="persona ${p.attivo ? '' : 'spento'}">
       <div class="ini">${esc(iniziali(p.nome || p.utente))}</div>
       <div><b>${esc(p.nome)}</b><span>nome utente: <b style="display:inline">${esc(p.utente)}</b> · ${quante(p.uid)} sessioni${p.attivo ? '' : ' · <b style="display:inline;color:var(--rosso)">disattivato</b>'}</span></div>
+      <div class="chip-tipi">${TUTTI_I_TIPI.map(k => `<button data-uid="${p.uid}" data-tipo="${k}" class="${(p.tipi || TUTTI_I_TIPI).includes(k) ? 'on' : ''}" title="Tocca per dare o togliere">${TIPI[k].em} ${PLURALI[k]}</button>`).join('')}</div>
       <div class="azioni"><button class="bt bianco" data-vedi="${p.uid}">Vedi le sue sessioni</button>
       <button class="bt ${p.attivo ? 'chiaro' : 'verde'}" data-attiva="${p.uid}">${p.attivo ? 'Disattiva' : 'Riattiva'}</button></div></div>`).join('')
     : '<div class="vuoto">Nessuna persona ancora. Aggiungila qui accanto.</div>';
   $('persone').querySelectorAll('[data-vedi]').forEach(b => b.onclick = () => { filtro = b.dataset.vedi; vaiArchivio(); });
+  // Dare o togliere un tipo di sessione a una persona.
+  $('persone').querySelectorAll('.chip-tipi button').forEach(b => b.onclick = async () => {
+    const p = persone.find(x => x.uid === b.dataset.uid), ora = p.tipi || TUTTI_I_TIPI;
+    const nuovi = ora.includes(b.dataset.tipo) ? ora.filter(t => t !== b.dataset.tipo) : [...ora, b.dataset.tipo];
+    if (!nuovi.length) { alert('Deve poter lavorare almeno su una cosa. Se non deve lavorare più, premi «Disattiva».'); return; }
+    await updateDoc(doc(db, 'utenti', p.uid), { tipi: TUTTI_I_TIPI.filter(t => nuovi.includes(t)) }).catch(() => alert('Non sono riuscito. Riprova.'));
+  });
+  disegnaCredenziali();
   $('persone').querySelectorAll('[data-attiva]').forEach(b => b.onclick = async () => {
     const p = persone.find(x => x.uid === b.dataset.attiva);
     if (p.attivo && !confirm(`Disattivare ${p.nome}? Non potrà più entrare finché non lo riattivi.`)) return;
@@ -842,11 +904,15 @@ $('pAggiungiBt').onclick = async () => {
   if (pass.length < 6) { $('pErr').textContent = 'La password deve avere almeno 6 caratteri.'; return; }
   $('pAggiungiBt').disabled = true;
   try {
+    const tipi = [...document.querySelectorAll('#pTipi input:checked')].map(x => x.value);
+    if (!tipi.length) throw { code: 'nessun-tipo' };
     const uid = await creaAccount(utente, pass);
-    await setDoc(doc(db, 'utenti', uid), { nome, utente, attivo: true, creato: serverTimestamp() });
+    await setDoc(doc(db, 'utenti', uid), { nome, utente, attivo: true, tipi, creato: serverTimestamp() });
+    salvaCredenziali(utente, pass, uid);
     $('pNome').value = $('pUtente').value = $('pPass').value = '';
+    document.querySelectorAll('#pTipi input').forEach(x => x.checked = true);
     $('pOk').textContent = `Fatto. ${nome} entra da questo stesso indirizzo con il nome utente «${utente}».`;
-  } catch (e) { $('pErr').textContent = messaggioErrore(e); }
+  } catch (e) { $('pErr').textContent = e.code === 'nessun-tipo' ? 'Scegli almeno una cosa su cui può lavorare.' : messaggioErrore(e); }
   $('pAggiungiBt').disabled = false;
 };
 $('mCambia').onclick = async () => {
@@ -854,7 +920,7 @@ $('mCambia').onclick = async () => {
   const v = $('mVecchia').value, n = $('mNuova').value;
   if (!v || !n) { $('mErr').textContent = 'Scrivi la password di adesso e quella nuova.'; return; }
   if (n !== $('mNuova2').value) { $('mErr').textContent = 'Le due password nuove non sono uguali.'; return; }
-  try { await cambiaPassword(v, n); $('mVecchia').value = $('mNuova').value = $('mNuova2').value = ''; $('mOk').textContent = 'Password cambiata.'; }
+  try { await cambiaPassword(v, n); salvaCredenziali(io.utente, n); $('mVecchia').value = $('mNuova').value = $('mNuova2').value = ''; $('mOk').textContent = 'Password cambiata.'; }
   catch (e) { $('mErr').textContent = messaggioErrore(e); }
 };
 
