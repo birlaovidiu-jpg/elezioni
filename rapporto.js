@@ -1,6 +1,6 @@
 // Rapporto PDF delle votazioni su carta intestata (come nel programma delle Pubblicazioni):
 // fascia blu con il logo bianco, la chiesa a sinistra e il nome del foglio a destra.
-import { CHIESA, nomeVotazione, dataBella, righeRisultato, notaNessuno } from './comune.js?v=11';
+import { CHIESA, TIPI, nomeVotazione, dataBella, righeRisultato, notaNessuno } from './comune.js?v=12';
 
 let pronto = null;
 function caricaScript(src) {
@@ -62,12 +62,13 @@ export async function creaRapporto({ codice, sessione, iscritti, votazioni, risu
     const xLinea = tx + pdf.getTextWidth(CHIESA.programma) + 4;
     pdf.setDrawColor(190, 205, 228); pdf.setLineWidth(0.4); pdf.line(xLinea, 11, xLinea, 17.2);
     font('bold', 11, [255, 255, 255]); testo(CHIESA.campo, xLinea + 4, 16);
-    font('normal', 8.6, [225, 232, 245]); testo(taglia(CHIESA.denominazione, larg + 10), tx, 23);
-    font('normal', 8.2, [215, 225, 240]); testo(taglia(CHIESA.indirizzo, larg + 10), tx, 29.5);
+    // Le righe vanno dall'alto al basso del logo, come prima: l'indirizzo a filo del fondo del logo.
+    font('normal', 8.6, [225, 232, 245]); testo(taglia(CHIESA.denominazione, larg + 10), tx, 25);
+    font('normal', 8.2, [215, 225, 240]); testo(taglia(CHIESA.indirizzo, larg + 10), tx, 34);
     // A destra, più in basso, per non toccare la prima riga.
-    font('bold', 13, [255, 255, 255]); testo('Rapporto delle votazioni', W - M, 28, { align: 'right' });
-    font('normal', 9, [225, 232, 245]); testo(taglia(nomeV, 64), W - M, 34, { align: 'right' });
-    testo(dataBella(sessione.data), W - M, 39.5, { align: 'right' });
+    font('bold', 13, [255, 255, 255]); testo('Rapporto delle votazioni', W - M, 30, { align: 'right' });
+    font('normal', 9, [225, 232, 245]); testo(taglia(nomeV, 64), W - M, 35.5, { align: 'right' });
+    testo(dataBella(sessione.data), W - M, 40.5, { align: 'right' });
     y = h + 10;
   }
   function intestazionePiccola() {
@@ -118,7 +119,7 @@ export async function creaRapporto({ codice, sessione, iscritti, votazioni, risu
   pdf.setFillColor(246, 248, 252); pdf.setDrawColor(...LINEA); pdf.setLineWidth(0.3);
   pdf.roundedRect(M, y - 6, W - 2 * M, 36, 3, 3, 'FD');
   font('bold', 16, TITOLI); testo(taglia(sessione.raduno || nomeV, W - 2 * M - 10), M + 6, y + 2);
-  font('normal', 10.5, GRIGIO); testo(nomeV, M + 6, y + 9);
+  font('normal', 10.5, GRIGIO); testo(sessione.raduno ? nomeV : (TIPI[sessione.tipo]?.nome || ''), M + 6, y + 9);
   const dati = [
     ['Data', dataBella(sessione.data) || '—'], ['Codice', codice],
     ['Votanti', sessione.votanti > 0 ? String(sessione.votanti) : '—'], ['Registrati', String(iscritti.length)],

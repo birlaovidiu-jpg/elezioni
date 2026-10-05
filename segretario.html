@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=11">
+<link rel="stylesheet" href="stile.css?v=12">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -419,12 +419,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=11';
-import { creaRapporto } from './rapporto.js?v=11';
+import qrcode from './qrcode.mjs?v=12';
+import { creaRapporto } from './rapporto.js?v=12';
 import { controllaVersione, db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=11';
+  from './comune.js?v=12';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
@@ -463,6 +463,7 @@ $('aEntra').onclick = async () => {
   $('aErr').textContent = '';
   if (!u || !p) { $('aErr').textContent = 'Scrivi nome utente e password.'; return; }
   $('aEntra').disabled = true;
+  segnaAttivita();   // si entra adesso: il conto dei 30 minuti riparte da qui
   try {
     if (primoAccesso) {
       if (u !== DIRETTORE) throw { code: 'solo-direttore' };
@@ -491,7 +492,11 @@ quandoCambiaAccesso(async u => {
     // Account disattivato o non riconosciuto.
     await esci(); $('aErr').textContent = 'Questo account non è attivo. Chiedi al Direttore.'; return;
   }
-  if (!io) { modoAccesso(false); mostra('vAccesso'); setTimeout(() => $('aUtente').focus(), 50); return; }
+  if (!io) { const msg = $('aErr').textContent; modoAccesso(false); $('aErr').textContent = msg; mostra('vAccesso'); setTimeout(() => $('aUtente').focus(), 50); return; }
+  // Pagina riaperta dopo più di 30 minuti senza usarla: si esce.
+  const ultima = Number(localStorage.getItem('ultimaAttivita') || 0);
+  if (ultima && Date.now() - ultima >= INATTIVO_MS) { controllaInattivita(); return; }
+  segnaAttivita();
   $('chiSono').innerHTML = `<b>${esc(io.nome)}</b>${io.direttore ? 'Direttore' : 'Segretario'}`;
   $('pPersone').classList.toggle('nascosto', !io.direttore);
   $('pAggiungi').classList.toggle('nascosto', !io.direttore);
@@ -1011,6 +1016,23 @@ $('mCambia').onclick = async () => {
   try { await cambiaPassword(v, n); salvaCredenziali(io.utente, n); $('mVecchia').value = $('mNuova').value = $('mNuova2').value = ''; $('mOk').textContent = 'Password cambiata.'; }
   catch (e) { $('mErr').textContent = messaggioErrore(e); }
 };
+
+// ---------- Dopo 30 minuti senza usare la pagina si esce da soli ----------
+const INATTIVO_MS = 30 * 60 * 1000;
+const segnaAttivita = () => { try { localStorage.setItem('ultimaAttivita', String(Date.now())); } catch (e) {} };
+let ultimoSegno = 0;
+['pointerdown', 'keydown', 'mousemove', 'wheel', 'touchstart', 'scroll'].forEach(ev =>
+  addEventListener(ev, () => { const ora = Date.now(); if (ora - ultimoSegno > 5000) { ultimoSegno = ora; segnaAttivita(); } }, { passive: true, capture: true }));
+async function controllaInattivita() {
+  if (!io) return;
+  const ultima = Number(localStorage.getItem('ultimaAttivita') || Date.now());
+  if (Date.now() - ultima < INATTIVO_MS) return;
+  chiudiAscolto(); fermaArchivio?.(); fermaPersone?.(); fermaCred?.(); credVisibili.clear();
+  await esci();
+  $('aErr').textContent = 'Sei uscito perché la pagina non è stata usata per 30 minuti. Entra di nuovo.';
+}
+setInterval(controllaInattivita, 30 * 1000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') controllaInattivita(); });
 
 // Versione nuova del programma: si controlla all'apertura e ogni volta che si torna sulla pagina.
 controllaVersione();

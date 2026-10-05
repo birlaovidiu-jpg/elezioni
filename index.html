@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icona-180.png">
 <link rel="icon" href="icona-192.png">
-<link rel="stylesheet" href="stile.css?v=11">
+<link rel="stylesheet" href="stile.css?v=12">
 <style>
   main { max-width: 560px; margin: 0 auto; padding: 18px 16px calc(130px + env(safe-area-inset-bottom)); }
   .titolo-vot { text-align: center; margin: 6px 0 4px; font-size: 26px; font-weight: 800; color: var(--blu-scuro); }
@@ -225,7 +225,7 @@
 
 <script type="module">
 import { controllaVersione, db, COLLEGATO, entra, idCasuale, esc, iniziali, ruoloCompleto, nomeVotazione, dataBella, COLORI,
-         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=11';
+         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=12';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vSenza', 'vCarica', 'vRegistra', 'vAttesa', 'vVota', 'vVotato', 'vChiusa'];
