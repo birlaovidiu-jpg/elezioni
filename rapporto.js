@@ -1,6 +1,6 @@
 // Rapporto PDF delle votazioni su carta intestata (come nel programma delle Pubblicazioni):
 // fascia blu con il logo bianco, la chiesa a sinistra e il nome del foglio a destra.
-import { CHIESA, TIPI, nomeVotazione, dataBella, righeRisultato, notaNessuno } from './comune.js?v=15';
+import { CHIESA, TIPI, nomeVotazione, dataBella, righeRisultato, notaNessuno } from './comune.js?v=16';
 
 let pronto = null;
 function caricaScript(src) {

@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=15">
+<link rel="stylesheet" href="stile.css?v=16">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -426,12 +426,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=15';
-import { creaRapporto } from './rapporto.js?v=15';
+import qrcode from './qrcode.mjs?v=16';
+import { creaRapporto } from './rapporto.js?v=16';
 import { controllaVersione, db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=15';
+  from './comune.js?v=16';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
@@ -946,7 +946,6 @@ $('btElimina').onclick = () => eliminaSessione(S);
 // Chiudi sessione: finito il raduno non si vota e non ci si registra più; resta tutto da vedere.
 $('btChiudiSess').onclick = async () => {
   if (corrente()?.stato === 'aperta') { alert('C\'è una votazione in corso: prima premi «Fine votazione».'); return; }
-  if (!confirm('Chiudere tutta la sessione?\n\nNon si potrà più votare né registrarsi. Si potranno solo vedere i risultati e fare il rapporto PDF.\nQuesta operazione non si può annullare.')) return;
   try { await updateDoc(doc(db, 'sessioni', S), { chiusa: true, chiusaIl: serverTimestamp() }); }
   catch (e) { console.warn(e); alert('Non sono riuscito a chiudere la sessione. Riprova.'); }
 };
