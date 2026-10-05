@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=4">
+<link rel="stylesheet" href="stile.css?v=5">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -104,6 +104,8 @@
   .ris.ballo .pos { background: #e8a33d; color: #fff; }
   .ris.ballo .b i { background: #e8a33d; }
   .ris.fuori { opacity: .55; }
+  .ris.contro .pos { background: #fee2e2; color: var(--rosso); }
+  .ris.contro .b i { background: var(--rosso); }
   .ballo-etic { display: inline-block; margin-left: 10px; padding: 4px 12px; border-radius: 99px; background: #e8a33d; color: #fff; font-size: 14px; font-weight: 900; letter-spacing: 1px; vertical-align: middle; }
   .fuori-etic { display: inline-block; margin-left: 10px; padding: 4px 12px; border-radius: 99px; background: #e5e1d6; color: var(--grigio); font-size: 14px; font-weight: 800; letter-spacing: 1px; vertical-align: middle; }
   .ballottaggio { padding: 16px 18px; border-radius: 16px; background: #fff3dc; border: 2px solid #e8a33d; margin-bottom: 14px; }
@@ -286,6 +288,7 @@
         <span class="etichetta">Nomi dei candidati</span>
         <div id="righe"></div>
         <button class="bt chiaro" id="aggiungi" type="button">+ Aggiungi un nome</button>
+        <div class="piccolo" style="margin-top:8px">Con un solo nome, chi vota avrà due pulsanti: <b>Sì</b> e <b>No</b>.</div>
         <div style="margin-top:18px">
           <span class="piccolo" style="font-size:16px;color:var(--inchiostro)">Ognuno può scegliere</span>
           <span class="contapiu"><button id="meno" type="button">−</button><span id="nScelte">1</span><button id="piu" type="button">+</button></span>
@@ -371,12 +374,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=4';
-import { creaRapporto } from './rapporto.js?v=4';
-import { db, COLLEGATO, CHIESA, TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella,
+import qrcode from './qrcode.mjs?v=5';
+import { creaRapporto } from './rapporto.js?v=5';
+import { db, COLLEGATO, CHIESA, TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=4';
+  from './comune.js?v=5';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
@@ -609,7 +612,7 @@ function disegna() {
       votatiDi = aperta.id; votati = new Set();
       $('cTit').textContent = aperta.titolo;
       $('cScelte').textContent = aperta.scelte > 1 ? `Ognuno sceglie fino a ${aperta.scelte} nomi` : 'Ognuno sceglie un nome';
-      $('cNomi').innerHTML = aperta.candidati.map(n => `<span>${esc(n)}</span>`).join('');
+      $('cNomi').innerHTML = aperta.candidati.map(n => `<span>${esc(n)}</span>`).join('') + (aperta.candidati.length === 1 ? '<span>Sì / No</span>' : '');
       fermaVotati?.();
       fermaVotati = onSnapshot(collection(db, 'sessioni', S, 'votazioni', aperta.id, 'votati'), snap => {
         votati = new Set(snap.docs.map(d => d.id)); stato();
@@ -755,7 +758,7 @@ async function mostraRisultato(vId) {
   ].map(([n, t]) => `<div class="num"><b>${n}</b><span>${t}</span></div>`).join('');
   let nota = '';
   if (!arrivate) nota = '<div class="nessuno">Nessuno ha votato.</div>';
-  else if (!r.vinti.length && !ballo.length && !r.parita?.length) nota = `<div class="nessuno">Nessuno ha raggiunto la maggioranza (servivano ${r.maggioranza} voti).</div>`;
+  else if (!r.vinti.length && !ballo.length && !r.parita?.length) nota = `<div class="nessuno">${esc(notaNessuno(v, r))}</div>`;
   if (r.parita?.length) nota += `<div class="nessuno">Parità tra ${r.parita.map(i => esc(v.candidati[i])).join(', ')}: sono più dei posti da eleggere.</div>`;
   if (ballo.length) {
     const giaFatto = votazioni.some(x => x.ballottaggioDi === vId);
@@ -776,18 +779,14 @@ async function mostraRisultato(vId) {
     const titolo = 'Ballottaggio – ' + v.titolo.replace(/^Ballottaggio – /, '');
     if (!await apriVotazione(titolo, nomi, r.posti, vId)) { $('avviaBallo').disabled = false; alert('Non sono riuscito ad aprire il ballottaggio. Riprova.'); }
   });
-  const ordine = v.candidati.map((_, i) => i).sort((a, b) => r.voti[b] - r.voti[a]);
-  const max = Math.max(1, ...r.voti);
-  $('rRighe').innerHTML = ordine.map((i, k) => {
-    const vinto = r.vinti.includes(i), alBallo = ballo.includes(i), escluso = fuori.includes(i);
-    const perc = r.votanti ? Math.round(r.voti[i] / r.votanti * 1000) / 10 : 0;
-    const etic = vinto ? '<span class="vinto-etic">HA VINTO</span>' : alBallo ? '<span class="ballo-etic">BALLOTTAGGIO</span>' : escluso ? '<span class="fuori-etic">FUORI</span>' : '';
-    return `<div class="ris ${vinto ? 'vinto' : alBallo ? 'ballo' : escluso ? 'fuori' : ''}">
-      <div class="pos">${k + 1}</div>
-      <div><span class="n">${esc(v.candidati[i])}</span>${etic}
-        <div class="b"><i style="width:${r.voti[i] / max * 100}%"></i></div></div>
-      <div class="v"><b>${r.voti[i]}</b><span>${perc}%</span></div></div>`;
-  }).join('');
+  const righe = righeRisultato(v, r);
+  const max = Math.max(1, ...righe.map(x => x.voti));
+  const ETIC = { vinto: '<span class="vinto-etic">HA VINTO</span>', ballo: '<span class="ballo-etic">BALLOTTAGGIO</span>', fuori: '<span class="fuori-etic">FUORI</span>', '': '' };
+  $('rRighe').innerHTML = righe.map((x, k) => `<div class="ris ${x.esito}${x.no ? ' contro' : ''}">
+      <div class="pos">${x.si ? '✓' : x.no ? '✗' : k + 1}</div>
+      <div><span class="n">${esc(x.nome)}</span>${ETIC[x.esito]}
+        <div class="b"><i style="width:${x.voti / max * 100}%"></i></div></div>
+      <div class="v"><b>${x.voti}</b><span>${x.perc}%</span></div></div>`).join('');
 }
 
 $('nuova').onclick = () => { vistaRis = null; disegna(); $('vTit').focus(); };

@@ -5,7 +5,7 @@ import { getAuth, signInAnonymously, connectAuthEmulator, signInWithEmailAndPass
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { initializeFirestore, connectFirestoreEmulator, doc, getDoc }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import { FIREBASE } from './config.js?v=4';
+import { FIREBASE } from './config.js?v=5';
 
 export * from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
@@ -154,9 +154,11 @@ export function ruoloCompleto(r) {
 export function conta(votazione, schede) {
   const n = votazione.candidati.length;
   const voti = new Array(n).fill(0);
-  let bianche = 0, nulle = 0;
+  let bianche = 0, nulle = 0, contrari = 0;
   for (const s of schede) {
     if (s && s.b === true) { bianche++; continue; }
+    // Con un solo nome si vota Sì o No: il No conta come voto dato, ma contro.
+    if (s && s.no === true) { if (n === 1) contrari++; else nulle++; continue; }
     const scelte = Array.isArray(s?.c) ? [...new Set(s.c)] : [];
     if (!scelte.length || scelte.length > votazione.scelte ||
         scelte.some(i => !Number.isInteger(i) || i < 0 || i >= n)) { nulle++; continue; }
@@ -188,7 +190,30 @@ export function conta(votazione, schede) {
     if (ballottaggio.length > rimasti) fuori = altri.filter(i => !ballottaggio.includes(i));
     else ballottaggio = [];
   }
-  return { voti, bianche, nulle, arrivate, votanti, maggioranza, vinti, parita, ballottaggio, fuori, posti: rimasti };
+  return { voti, bianche, nulle, contrari, arrivate, votanti, maggioranza, vinti, parita, ballottaggio, fuori, posti: rimasti };
+}
+
+// Le righe dei risultati, uguali per segretario, proiezione e PDF.
+// Con più nomi: dal più votato. Con un solo nome: «Sì — Nome» e «No».
+export function righeRisultato(v, r) {
+  const perc = n => r.votanti ? Math.round(n / r.votanti * 1000) / 10 : 0;
+  if (v.candidati.length === 1) {
+    const si = r.voti[0], no = r.contrari || 0;
+    return [
+      { nome: 'Sì — ' + v.candidati[0], voti: si, perc: perc(si), esito: r.vinti.includes(0) ? 'vinto' : '', si: true },
+      { nome: 'No', voti: no, perc: perc(no), esito: '', no: true }
+    ];
+  }
+  const ballo = r.ballottaggio || [], fuori = r.fuori || [];
+  return v.candidati.map((_, i) => i).sort((a, b) => r.voti[b] - r.voti[a]).map(i => ({
+    nome: v.candidati[i], voti: r.voti[i], perc: perc(r.voti[i]),
+    esito: r.vinti.includes(i) ? 'vinto' : ballo.includes(i) ? 'ballo' : fuori.includes(i) ? 'fuori' : ''
+  }));
+}
+// Quando nessuno è eletto (e non c'è ballottaggio).
+export function notaNessuno(v, r) {
+  if (v.candidati.length === 1) return `${v.candidati[0]} non è eletto: servivano ${r.maggioranza} Sì.`;
+  return `Nessuno ha raggiunto la maggioranza (servivano ${r.maggioranza} voti).`;
 }
 
 // Colori dei pulsanti dei candidati (uguali sul telefono e in proiezione).

@@ -1,6 +1,6 @@
 // Rapporto PDF delle votazioni su carta intestata (come nel programma delle Pubblicazioni):
 // fascia blu con il logo bianco, la chiesa a sinistra e il nome del foglio a destra.
-import { CHIESA, nomeVotazione, dataBella } from './comune.js?v=4';
+import { CHIESA, nomeVotazione, dataBella, righeRisultato, notaNessuno } from './comune.js?v=5';
 
 let pronto = null;
 function caricaScript(src) {
@@ -142,27 +142,27 @@ export async function creaRapporto({ codice, sessione, iscritti, votazioni, risu
   if (!votazioni.length) { font('normal', 10, GRIGIO); testo('Nessuna votazione chiusa.', M, y); y += 8; }
   for (const v of votazioni) {
     const r = risultati[v.id]; if (!r) continue;
-    const ballo = r.ballottaggio || [], fuori = r.fuori || [], arrivate = r.arrivate ?? r.votanti;
+    const ballo = r.ballottaggio || [], arrivate = r.arrivate ?? r.votanti;
     spazio(30);
     font('bold', 11.5, TITOLI); testo(`${v.n}. ${v.titolo}`, M, y); y += 5.5;
     font('normal', 8.6, GRIGIO);
     testo([`Votanti ${r.votanti}`, v.votanti ? `schede arrivate ${arrivate}` : '', `maggioranza ${r.maggioranza} voti`, `bianche ${r.bianche}`,
-      r.nulle ? `non valide ${r.nulle}` : '', v.scelte > 1 ? `fino a ${v.scelte} nomi a testa` : 'un nome a testa'].filter(Boolean).join('  ·  '), M, y);
+      r.nulle ? `non valide ${r.nulle}` : '', v.candidati.length === 1 ? 'votazione Sì / No' : v.scelte > 1 ? `fino a ${v.scelte} nomi a testa` : 'un nome a testa'].filter(Boolean).join('  ·  '), M, y);
     y += 6;
-    const ordine = v.candidati.map((_, i) => i).sort((a, b) => r.voti[b] - r.voti[a]);
-    tabella([{ t: 'Pos.', w: 14 }, { t: 'Candidato', w: 86 }, { t: 'Voti', w: 20, allinea: 'right' }, { t: '%', w: 22, allinea: 'right' }, { t: 'Esito', w: W - 2 * M - 142 }],
-      ordine.map((i, k) => {
-        const vinto = r.vinti.includes(i), alBallo = ballo.includes(i), escluso = fuori.includes(i);
-        const perc = r.votanti ? (Math.round(r.voti[i] / r.votanti * 1000) / 10).toLocaleString('it-IT') + '%' : '—';
-        const esito = vinto ? ['HA VINTO', VERDE] : alBallo ? ['BALLOTTAGGIO', ARANCIO] : escluso ? ['FUORI', GRIGIO] : ['', GRIGIO];
+    const sino = v.candidati.length === 1;
+    tabella([{ t: sino ? '' : 'Pos.', w: 14 }, { t: sino ? 'Voto' : 'Candidato', w: 86 }, { t: 'Voti', w: 20, allinea: 'right' }, { t: '%', w: 22, allinea: 'right' }, { t: 'Esito', w: W - 2 * M - 142 }],
+      righeRisultato(v, r).map((x, k) => {
+        const vinto = x.esito === 'vinto', alBallo = x.esito === 'ballo';
+        const perc = r.votanti ? x.perc.toLocaleString('it-IT') + '%' : '—';
+        const esito = { vinto: ['HA VINTO', VERDE], ballo: ['BALLOTTAGGIO', ARANCIO], fuori: ['FUORI', GRIGIO], '': ['', GRIGIO] }[x.esito];
         return { sfondo: vinto ? [220, 252, 231] : alBallo ? [255, 243, 220] : null,
-          celle: [{ t: String(k + 1), colore: GRIGIO }, { t: v.candidati[i], peso: vinto ? 'bold' : 'normal', colore: vinto ? VERDE : undefined },
-            { t: String(r.voti[i]), peso: 'bold' }, { t: perc }, { t: esito[0], peso: 'bold', colore: esito[1], pt: 8.5 }] };
+          celle: [{ t: sino ? '' : String(k + 1), colore: GRIGIO }, { t: x.nome, peso: vinto ? 'bold' : 'normal', colore: vinto ? VERDE : x.no ? ROSSO : undefined },
+            { t: String(x.voti), peso: 'bold' }, { t: perc }, { t: esito[0], peso: 'bold', colore: esito[1], pt: 8.5 }] };
       }));
     let nota = '';
     if (!arrivate) nota = 'Nessuno ha votato.';
     else if (ballo.length) nota = `Va al ballottaggio: ${ballo.map(i => v.candidati[i]).join(', ')}.`;
-    else if (!r.vinti.length) nota = `Nessuno ha raggiunto la maggioranza (servivano ${r.maggioranza} voti).`;
+    else if (!r.vinti.length) nota = notaNessuno(v, r);
     if (r.parita?.length) nota += ` Parità tra ${r.parita.map(i => v.candidati[i]).join(', ')}.`;
     if (nota) { spazio(7); font('bold', 9, ballo.length ? ARANCIO : ROSSO); testo(nota.trim(), M, y - 1); y += 6; }
     y += 2;

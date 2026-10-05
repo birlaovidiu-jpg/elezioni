@@ -78,6 +78,12 @@
   .riga.ballo .pos, .riga.ballo .et { background: var(--arancio); color: #fff; }
   .riga.ballo .b i { background: var(--arancio); }
   .riga.fuori { opacity: .5; }
+  .riga.contro .pos { background: #ef4444; }
+  .riga.contro .b i { background: #f87171; }
+  .sino { display: flex; justify-content: center; gap: 3vw; margin-top: 3vh; }
+  .sino span { min-width: 22vw; padding: 2.4vh 0; border-radius: 2.6vh; font-size: 6vh; font-weight: 900; letter-spacing: .4vh; }
+  .sino .si { background: linear-gradient(135deg, #22c55e, #15803d); }
+  .sino .no { background: linear-gradient(135deg, #ef4444, #b91c1c); }
   .riga.fuori .et { background: rgba(255,255,255,.2); }
   .avviso { text-align: center; margin: 2.4vh auto 0; font-size: 2.8vh; font-weight: 800; padding: 1.4vh 3vh; border-radius: 2vh; width: fit-content; }
   .avviso.ballo { background: rgba(245,165,36,.18); border: 2px solid var(--arancio); color: #fde68a; }
@@ -100,8 +106,8 @@
 <button class="tasto" id="tutto">⛶ Tutto schermo</button>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=4';
-import { db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, doc, collection, onSnapshot } from './comune.js?v=4';
+import qrcode from './qrcode.mjs?v=5';
+import { db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, righeRisultato, notaNessuno, doc, collection, onSnapshot } from './comune.js?v=5';
 
 const $ = id => document.getElementById(id);
 const S = (new URLSearchParams(location.search).get('s') || '').toUpperCase();
@@ -134,11 +140,12 @@ function disegna() {
     c.innerHTML = `<div class="corso">
       <span class="pill">VOTAZIONE IN CORSO</span>
       <h1>${esc(vot.titolo)}</h1>
-      <div class="scelte">${vot.scelte > 1 ? `Si possono scegliere fino a ${vot.scelte} nomi` : 'Si sceglie un nome'}</div>
+      <div class="scelte">${n === 1 ? 'Si vota Sì o No' : vot.scelte > 1 ? `Si possono scegliere fino a ${vot.scelte} nomi` : 'Si sceglie un nome'}</div>
       <div class="candidati" style="grid-template-columns:repeat(${colonne(n)},minmax(0,1fr))">
         ${vot.candidati.map((nome, i) => { const [c1, c2] = COLORI[i % COLORI.length];
           return `<div class="cand" style="--c1:${c1};--c2:${c2}"><span class="ini">${esc(iniziali(nome))}</span><span class="n" style="font-size:${grandezza(n)}vh">${esc(nome)}</span></div>`; }).join('')}
       </div>
+      ${n === 1 ? '<div class="sino"><span class="si">SÌ</span><span class="no">NO</span></div>' : ''}
       <div class="conta">
         <div class="num">${nVotati}<span> / ${tot}</span></div>
         <div class="et">hanno votato</div>
@@ -148,25 +155,23 @@ function disegna() {
     return;
   }
   if (vot && vot.stato === 'chiusa' && ris) {
-    const ballo = ris.ballottaggio || [], fuori = ris.fuori || [], arrivate = ris.arrivate ?? ris.votanti;
-    const ordine = vot.candidati.map((_, i) => i).sort((a, b) => ris.voti[b] - ris.voti[a]);
-    const max = Math.max(1, ...ris.voti), n = ordine.length;
+    const ballo = ris.ballottaggio || [], arrivate = ris.arrivate ?? ris.votanti;
+    const righe = righeRisultato(vot, ris);
+    const max = Math.max(1, ...righe.map(x => x.voti)), n = righe.length;
     const fs = n <= 3 ? 5.6 : n <= 5 ? 4.4 : n <= 7 ? 3.4 : 2.6;
     let avviso = '';
     if (ballo.length) avviso = `<div class="avviso ballo">⟳ Va al ballottaggio: ${ballo.map(i => esc(vot.candidati[i])).join(', ')}</div>`;
-    else if (arrivate && !ris.vinti.length) avviso = `<div class="avviso nessuno">Nessuno ha raggiunto la maggioranza (servivano ${ris.maggioranza} voti)</div>`;
+    else if (arrivate && !ris.vinti.length) avviso = `<div class="avviso nessuno">${esc(notaNessuno(vot, ris))}</div>`;
     c.innerHTML = `<div class="ris">
       <h1>${esc(vot.titolo)}</h1>
       <div class="info">Votanti ${ris.votanti} · servono ${ris.maggioranza} voti per la maggioranza · schede bianche ${ris.bianche}</div>
-      <div class="righe">${ordine.map((i, k) => {
-        const vinto = ris.vinti.includes(i), alBallo = ballo.includes(i), escluso = fuori.includes(i);
-        const perc = ris.votanti ? Math.round(ris.voti[i] / ris.votanti * 1000) / 10 : 0;
-        const et = vinto ? 'HA VINTO' : alBallo ? 'BALLOTTAGGIO' : escluso ? 'FUORI' : '';
-        return `<div class="riga ${vinto ? 'vinto' : alBallo ? 'ballo' : escluso ? 'fuori' : ''}">
-          <div class="pos">${k + 1}</div>
-          <div><span class="n" style="font-size:${fs}vh">${esc(vot.candidati[i])}</span>${et ? `<span class="et">${et}</span>` : ''}
-            <div class="b"><i style="width:${ris.voti[i] / max * 100}%"></i></div></div>
-          <div class="v"><b>${ris.voti[i]}</b><span>${perc.toLocaleString('it-IT')}%</span></div></div>`; }).join('')}</div>
+      <div class="righe">${righe.map((x, k) => {
+        const et = { vinto: 'HA VINTO', ballo: 'BALLOTTAGGIO', fuori: 'FUORI', '': '' }[x.esito];
+        return `<div class="riga ${x.esito}${x.no ? ' contro' : ''}">
+          <div class="pos">${x.si ? '✓' : x.no ? '✗' : k + 1}</div>
+          <div><span class="n" style="font-size:${fs}vh">${esc(x.nome)}</span>${et ? `<span class="et">${et}</span>` : ''}
+            <div class="b"><i style="width:${x.voti / max * 100}%"></i></div></div>
+          <div class="v"><b>${x.voti}</b><span>${x.perc.toLocaleString('it-IT')}%</span></div></div>`; }).join('')}</div>
       ${avviso}</div>`;
     return;
   }
