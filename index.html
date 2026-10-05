@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icona-180.png">
 <link rel="icon" href="icona-192.png">
-<link rel="stylesheet" href="stile.css?v=7">
+<link rel="stylesheet" href="stile.css?v=8">
 <style>
   main { max-width: 560px; margin: 0 auto; padding: 18px 16px calc(130px + env(safe-area-inset-bottom)); }
   .titolo-vot { text-align: center; margin: 6px 0 4px; font-size: 26px; font-weight: 800; color: var(--blu-scuro); }
@@ -213,8 +213,8 @@
 </main>
 
 <script type="module">
-import { db, COLLEGATO, entra, idCasuale, esc, iniziali, ruoloCompleto, nomeVotazione, dataBella, COLORI, INCARICHI, TIPI,
-         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=7';
+import { controllaVersione, db, COLLEGATO, entra, idCasuale, esc, iniziali, ruoloCompleto, nomeVotazione, dataBella, COLORI, INCARICHI, TIPI,
+         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=8';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vSenza', 'vCarica', 'vRegistra', 'vAttesa', 'vVota', 'vVotato', 'vChiusa'];
@@ -241,6 +241,7 @@ $('chiudiInstalla').onclick = () => { sessionStorage.setItem('noInstalla', 1); $
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 // --- Avvio ---
+controllaVersione();
 async function avvio() {
   if (!COLLEGATO) { mostra('vCarica'); $('vCarica').querySelector('p').textContent = 'Il programma non è ancora collegato a Firebase.'; return; }
   // Il codice del QR vale se è nuovo; se l'app installata si riapre con un codice vecchio nell'indirizzo,

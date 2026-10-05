@@ -5,7 +5,7 @@ import { getAuth, signInAnonymously, connectAuthEmulator, signInWithEmailAndPass
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { initializeFirestore, connectFirestoreEmulator, doc, getDoc }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import { FIREBASE } from './config.js?v=7';
+import { FIREBASE } from './config.js?v=8';
 
 export * from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
@@ -26,6 +26,22 @@ if (COLLEGATO) {
   if (PROVA) connectFirestoreEmulator(db, location.hostname, 8080);
 }
 export { db, auth };
+
+// ---------- Versione: se su Internet ce n'è una più nuova, la pagina si ricarica da sola ----------
+// (va cambiata insieme a versione.txt e ai «?v=» delle pagine a ogni pubblicazione)
+export const VERSIONE = '8';
+export async function controllaVersione() {
+  try {
+    const r = await fetch('versione.txt?x=' + Date.now(), { cache: 'no-store' });
+    const nuova = (await r.text()).trim();
+    if (!nuova || nuova === VERSIONE) return;
+    // Una volta sola per versione, così non gira in tondo se qualcosa va storto.
+    if (sessionStorage.getItem('aggiornato') === nuova) return;
+    sessionStorage.setItem('aggiornato', nuova);
+    const u = new URL(location.href); u.searchParams.set('agg', nuova);
+    location.replace(u.href);
+  } catch (e) { /* senza rete: si riprova la prossima volta */ }
+}
 
 // ---------- La chiesa (carta intestata, pagina di accesso) ----------
 export const CHIESA = {

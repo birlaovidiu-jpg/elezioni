@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=7">
+<link rel="stylesheet" href="stile.css?v=8">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -417,12 +417,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=7';
-import { creaRapporto } from './rapporto.js?v=7';
-import { db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
+import qrcode from './qrcode.mjs?v=8';
+import { creaRapporto } from './rapporto.js?v=8';
+import { controllaVersione, db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=7';
+  from './comune.js?v=8';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
@@ -1007,6 +1007,12 @@ $('mCambia').onclick = async () => {
   try { await cambiaPassword(v, n); salvaCredenziali(io.utente, n); $('mVecchia').value = $('mNuova').value = $('mNuova2').value = ''; $('mOk').textContent = 'Password cambiata.'; }
   catch (e) { $('mErr').textContent = messaggioErrore(e); }
 };
+
+// Versione nuova del programma: si controlla all'apertura e ogni volta che si torna sulla pagina.
+controllaVersione();
+// Lo stesso aiutante del telefono: le pagine arrivano sempre nuove da Internet.
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') controllaVersione(); });
 
 if (!COLLEGATO) $('vCarica').textContent = 'Il programma non è ancora collegato a Firebase: scrivi i dati nel file config.js.';
 </script>
