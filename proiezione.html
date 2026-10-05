@@ -106,8 +106,8 @@
 <button class="tasto" id="tutto">⛶ Tutto schermo</button>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=14';
-import { controllaVersione, db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, righeRisultato, notaNessuno, doc, collection, onSnapshot } from './comune.js?v=14';
+import qrcode from './qrcode.mjs?v=15';
+import { controllaVersione, db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, righeRisultato, notaNessuno, doc, collection, onSnapshot } from './comune.js?v=15';
 
 const $ = id => document.getElementById(id);
 const S = (new URLSearchParams(location.search).get('s') || '').toUpperCase();
@@ -211,7 +211,9 @@ controllaVersione();
     $('corpo').innerHTML = '<div class="messaggio">Apri la proiezione dal programma del segretario<br>(pulsante «📺 Proiezione» nella sessione).</div>';
     return;
   }
-  onSnapshot(doc(db, 'sessioni', S), snap => { sessione = snap.data(); seguiVotazione(sessione?.corrente || null); disegna(); },
+  onSnapshot(doc(db, 'sessioni', S), snap => {
+    if (!snap.exists()) { $('corpo').innerHTML = '<div class="messaggio">Questa sessione è stata eliminata.</div>'; sessione = null; return; }
+    sessione = snap.data(); seguiVotazione(sessione?.corrente || null); disegna(); },
     () => { $('corpo').innerHTML = '<div class="messaggio">Non puoi aprire questa sessione.</div>'; });
   onSnapshot(collection(db, 'sessioni', S, 'iscritti'), snap => { nIscritti = snap.size; disegna(); }, () => {});
 })();

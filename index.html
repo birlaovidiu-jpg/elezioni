@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icona-180.png">
 <link rel="icon" href="icona-192.png">
-<link rel="stylesheet" href="stile.css?v=14">
+<link rel="stylesheet" href="stile.css?v=15">
 <style>
   main { max-width: 560px; margin: 0 auto; padding: 18px 16px calc(130px + env(safe-area-inset-bottom)); }
   .titolo-vot { text-align: center; margin: 6px 0 4px; font-size: 26px; font-weight: 800; color: var(--blu-scuro); }
@@ -229,7 +229,7 @@
 
 <script type="module">
 import { controllaVersione, db, COLLEGATO, entra, idCasuale, esc, iniziali, ruoloCompleto, nomeVotazione, dataBella, COLORI,
-         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=14';
+         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=15';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vSenza', 'vCarica', 'vRegistra', 'vAttesa', 'vVota', 'vVotato', 'vChiusa'];
@@ -372,9 +372,10 @@ async function leggi() {
 }
 
 // --- Ascolta: i miei dati, la sessione, la votazione aperta ---
-let primoIscritto = true;
+let primoIscritto = true, eliminata = false;
 function ascolta() {
   onSnapshot(doc(db, 'sessioni', S, 'iscritti', uid), snap => {
+    if (eliminata) return;
     const prima = iscritto;
     iscritto = snap.exists() ? snap.data() : null;
     // Ero registrato e non lo sono più: mi ha tolto il segretario.
@@ -385,6 +386,13 @@ function ascolta() {
     else disegna();
   });
   onSnapshot(doc(db, 'sessioni', S), snap => {
+    // Il segretario ha eliminato la sessione: si torna alla pagina d'ingresso.
+    if (!snap.exists()) {
+      eliminata = true; fermaVot?.();
+      localStorage.removeItem('sessione'); localStorage.removeItem('ultimaNome'); sessionStorage.removeItem('dentro');
+      paginaIngresso('Questa votazione è stata eliminata dal segretario.');
+      return;
+    }
     sessione = snap.data();
     if (sessione.chiusa) { mostraChiusa(); return; }
     const nuovo = sessione.corrente || null;
@@ -426,6 +434,7 @@ function mostraChiusa() {
   mostra('vChiusa');
 }
 function disegna() {
+  if (eliminata) return;
   if (sessione?.chiusa) { mostraChiusa(); return; }
   if (!iscritto || inModifica) return;
   if (!vId || !votazione) { attesa(); return; }

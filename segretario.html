@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=14">
+<link rel="stylesheet" href="stile.css?v=15">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -130,6 +130,12 @@
   .etic-chiusa { padding: 10px 16px; border-radius: 12px; background: #fee2e2; color: var(--rosso); font-weight: 900; letter-spacing: .5px; }
   .avviso-chiusa { background: #fff1f1; border-color: #f3c4c4; color: #7f1d1d; font-size: 16px; }
   .sess-chiusa .iscritto .togli { display: none; }
+  .sess { position: relative; }
+  .sess .cestino { position: absolute; right: 10px; bottom: 10px; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; opacity: .45; transition: opacity .15s, background .15s; }
+  .sess:hover .cestino { opacity: 1; }
+  .sess .cestino:hover { background: #fee2e2; }
+  .bt.elimina { color: var(--rosso); border-color: #f3c4c4; }
+  .bt.elimina:hover { background: #fff1f1; border-color: var(--rosso); }
   .sess .chiusa-et { font-size: 11.5px; font-weight: 900; color: var(--rosso); background: #fee2e2; border-radius: 99px; padding: 2px 8px; margin-left: 6px; }
 
   .velo { position: fixed; inset: 0; background: rgba(255,255,255,.97); display: grid; place-items: center; z-index: 50; cursor: zoom-out; padding: 20px; }
@@ -296,6 +302,7 @@
       <button class="bt bianco" id="btProiezione">📺 Proiezione</button>
       <button class="bt bianco" id="btRapporto">📄 Rapporto PDF</button>
       <button class="bt rosso" id="btChiudiSess">🔒 Chiudi sessione</button>
+      <button class="bt bianco elimina" id="btElimina">🗑 Elimina sessione</button>
       <span class="etic-chiusa nascosto" id="sChiusaEt">🔒 SESSIONE CHIUSA</span>
     </div>
     <div class="griglia">
@@ -419,12 +426,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=14';
-import { creaRapporto } from './rapporto.js?v=14';
+import qrcode from './qrcode.mjs?v=15';
+import { creaRapporto } from './rapporto.js?v=15';
 import { controllaVersione, db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=14';
+  from './comune.js?v=15';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
@@ -549,9 +556,11 @@ function disegnaArchivio() {
       <span class="riga1"><span class="em">${TIPI[x.tipo]?.em || '🗳️'}</span><span class="tipo-et">${esc(TIPI[x.tipo]?.nome || '')}</span>${x.chiusa ? '<span class="chiusa-et">CHIUSA</span>' : ''}<span class="cod">${esc(x.s)}</span></span>
       <b>${esc(x.raduno || nomeVotazione(x))}</b>
       <small>${esc([x.raduno ? nomeVotazione(x) : '', dataBella(x.data)].filter(Boolean).join(' · '))}</small>
-      ${io.direttore ? `<span class="di">di <i>${esc(nomeDi(x.owner))}</i></span>` : ''}</button>`).join('')
+      ${io.direttore ? `<span class="di">di <i>${esc(nomeDi(x.owner))}</i></span>` : ''}
+      <span class="cestino" role="button" data-elimina="${esc(x.s)}" title="Elimina questa sessione">🗑</span></button>`).join('')
     : '<div class="vuoto">Nessun raduno ancora. Creane uno qui accanto.</div>';
   $('mie').querySelectorAll('.sess').forEach(b => b.onclick = () => apriSessione(b.dataset.s));
+  $('mie').querySelectorAll('[data-elimina]').forEach(c => c.onclick = e => { e.stopPropagation(); eliminaSessione(c.dataset.elimina); });
 }
 
 // ---------- Nuova sessione ----------
@@ -908,6 +917,31 @@ function bloccoRisultato(v, r, etichetta, ultimo) {
 
 $('nuova').onclick = () => { vistaRis = null; disegna(); $('vTit').focus(); };
 $('chiudiRis').onclick = () => { vistaRis = null; disegna(); };
+
+// ---------- Eliminare una sessione (per sempre: votazioni, risultati, registrati) ----------
+async function eliminaSessione(s) {
+  const x = sessioni.find(y => y.s === s) || (s === S ? { s, ...sessione } : { s });
+  const nome = x.raduno || nomeVotazione(x);
+  if (!confirm(`Eliminare per sempre «${nome}» (codice ${s})?\n\nSi cancellano tutte le sue votazioni, i risultati e i registrati.\nNon si può tornare indietro.`)) return;
+  if (s === S) { chiudiAscolto(); S = null; sessione = null; }
+  mostra('vCarica'); $('vCarica').textContent = 'Elimino la sessione…';
+  try {
+    const dentro = c => getDocs(collection(db, 'sessioni', s, c));
+    const [isc, vot, ris] = await Promise.all([dentro('iscritti'), dentro('votazioni'), dentro('risultati')]);
+    const daTogliere = [...isc.docs.map(d => d.ref), ...ris.docs.map(d => d.ref)];
+    for (const v of vot.docs) {
+      const vv = await getDocs(collection(v.ref, 'votati'));
+      daTogliere.push(...vv.docs.map(d => d.ref), doc(db, 'sessioni', s, 'urne', v.id), v.ref);
+    }
+    for (let i = 0; i < daTogliere.length; i += 400) {
+      const b = writeBatch(db); daTogliere.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit();
+    }
+    await deleteDoc(doc(db, 'sessioni', s));   // per ultima: serve a sapere chi poteva eliminarla
+  } catch (e) { console.warn(e); alert('Non sono riuscito a eliminare tutta la sessione. Riprova.'); }
+  $('vCarica').textContent = 'Collegamento…';
+  vaiArchivio();
+}
+$('btElimina').onclick = () => eliminaSessione(S);
 
 // Chiudi sessione: finito il raduno non si vota e non ci si registra più; resta tutto da vedere.
 $('btChiudiSess').onclick = async () => {

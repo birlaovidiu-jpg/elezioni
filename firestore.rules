@@ -62,6 +62,8 @@ service cloud.firestore {
       allow update: if segretario(s)
         && (direttore() || (request.resource.data.get('owner', '') == resource.data.get('owner', '')
             && !(resource.data.get('chiusa', false) == true && request.resource.data.get('chiusa', false) != true)));
+      // Eliminare una sessione: chi l'ha creata e il Direttore (prima si cancella tutto quello che c'è dentro).
+      allow delete: if segretario(s);
 
       // Registrazione di chi vota: nome, cognome, ruolo o incarico, chiesa.
       match /iscritti/{uid} {
@@ -83,7 +85,7 @@ service cloud.firestore {
         // Nessuna votazione nuova quando la sessione è chiusa.
         allow create: if segretario(s)
           && get(/databases/$(database)/documents/sessioni/$(s)).data.get('chiusa', false) != true;
-        allow update: if segretario(s);
+        allow update, delete: if segretario(s);
 
         // Solo CHI ha votato (vuoto: nessun contenuto).
         match /votati/{uid} {
@@ -93,11 +95,13 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/sessioni/$(s)/votazioni/$(v)).data.stato == 'aperta'
             && get(/databases/$(database)/documents/sessioni/$(s)).data.get('chiusa', false) != true
             && exists(/databases/$(database)/documents/sessioni/$(s)/iscritti/$(uid));
+          allow delete: if segretario(s);
         }
       }
 
       // L'urna: un solo documento per votazione, le schede sono voci con chiave a caso.
       match /urne/{v} {
+        allow delete: if segretario(s);
         allow read: if segretario(s)
           && get(/databases/$(database)/documents/sessioni/$(s)/votazioni/$(v)).data.stato == 'chiusa';
         allow create: if segretario(s)
