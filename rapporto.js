@@ -1,6 +1,6 @@
 // Rapporto PDF delle votazioni su carta intestata (come nel programma delle Pubblicazioni):
 // fascia blu con il logo bianco, la chiesa a sinistra e il nome del foglio a destra.
-import { CHIESA, TIPI, nomeVotazione, dataBella, righeRisultato, notaNessuno } from './comune.js?v=13';
+import { CHIESA, TIPI, nomeVotazione, dataBella, righeRisultato, notaNessuno } from './comune.js?v=14';
 
 let pronto = null;
 function caricaScript(src) {
@@ -57,18 +57,18 @@ export async function creaRapporto({ codice, sessione, iscritti, votazioni, risu
     const lh = 26, lw = lh * R.ratio;
     pdf.addImage(R.bianco, 'PNG', M, 9, lw, lh);
     const tx = M + lw + 6, larg = 112 - lw;
+    // Righe fitte accanto al logo; l'ultima (l'indirizzo) a filo del fondo del logo.
     // Prima riga: «Elezioni e Votazioni | Campo Italiano», separati da una linea.
-    font('bold', 17, [255, 255, 255]); testo(CHIESA.programma, tx, 16);
+    font('bold', 17, [255, 255, 255]); testo(CHIESA.programma, tx, 23);
     const xLinea = tx + pdf.getTextWidth(CHIESA.programma) + 4;
-    pdf.setDrawColor(190, 205, 228); pdf.setLineWidth(0.4); pdf.line(xLinea, 11, xLinea, 17.2);
-    font('bold', 11, [255, 255, 255]); testo(CHIESA.campo, xLinea + 4, 16);
-    // Le righe vanno dall'alto al basso del logo, come prima: l'indirizzo a filo del fondo del logo.
-    font('normal', 8.6, [225, 232, 245]); testo(taglia(CHIESA.denominazione, larg + 10), tx, 25);
-    font('normal', 8.2, [215, 225, 240]); testo(taglia(CHIESA.indirizzo, larg + 10), tx, 34);
-    // A destra, più in basso, per non toccare la prima riga.
-    font('bold', 13, [255, 255, 255]); testo('Rapporto delle votazioni', W - M, 30, { align: 'right' });
-    font('normal', 9, [225, 232, 245]); testo(taglia(nomeV, 64), W - M, 35.5, { align: 'right' });
-    testo(dataBella(sessione.data), W - M, 40.5, { align: 'right' });
+    pdf.setDrawColor(190, 205, 228); pdf.setLineWidth(0.4); pdf.line(xLinea, 18, xLinea, 24.2);
+    font('bold', 11, [255, 255, 255]); testo(CHIESA.campo, xLinea + 4, 23);
+    font('normal', 8.6, [225, 232, 245]); testo(taglia(CHIESA.denominazione, larg + 10), tx, 29.5);
+    font('normal', 8.2, [215, 225, 240]); testo(taglia(CHIESA.indirizzo, larg + 10), tx, 34.5);
+    // A destra: il nome del foglio in alto, la votazione sulla riga dell'indirizzo e sotto la data.
+    font('bold', 13, [255, 255, 255]); testo('Rapporto delle votazioni', W - M, 15, { align: 'right' });
+    font('normal', 9, [225, 232, 245]); testo(taglia(nomeV, 64), W - M, 34.5, { align: 'right' });
+    testo(dataBella(sessione.data), W - M, 40, { align: 'right' });
     y = h + 10;
   }
   function intestazionePiccola() {
