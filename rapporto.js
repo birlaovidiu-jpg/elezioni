@@ -1,6 +1,6 @@
 // Rapporto PDF delle votazioni su carta intestata (come nel programma delle Pubblicazioni):
 // fascia blu con il logo bianco, la chiesa a sinistra e il nome del foglio a destra.
-import { CHIESA, nomeVotazione, dataBella, righeRisultato, notaNessuno } from './comune.js?v=10';
+import { CHIESA, nomeVotazione, dataBella, righeRisultato, notaNessuno } from './comune.js?v=11';
 
 let pronto = null;
 function caricaScript(src) {
@@ -135,9 +135,8 @@ export async function creaRapporto({ codice, sessione, iscritti, votazioni, risu
   const intestazioni = { comitato: 'Composizione del comitato', consiglio: 'Composizione del consiglio', assemblea: 'Delegati presenti', chiesa: 'Membri presenti' };
   titoloSezione(intestazioni[sessione.tipo] || 'Partecipanti');
   const persone = [...iscritti].sort((a, b) => (a.cognome + a.nome).localeCompare(b.cognome + b.nome, 'it'));
-  const conIncarico = sessione.tipo === 'comitato' || sessione.tipo === 'consiglio';
   if (persone.length) {
-    tabella([{ t: 'N.', w: 12 }, { t: 'Nome e cognome', w: 70 }, { t: conIncarico ? 'Incarico' : 'Ruolo', w: 50 }, { t: 'Chiesa', w: W - 2 * M - 132 }],
+    tabella([{ t: 'N.', w: 12 }, { t: 'Nome e cognome', w: 70 }, { t: 'Ruolo', w: 50 }, { t: 'Chiesa', w: W - 2 * M - 132 }],
       persone.map((p, i) => ({ celle: [{ t: String(i + 1), colore: GRIGIO }, { t: `${p.nome} ${p.cognome}`, peso: 'bold' }, { t: p.ruolo }, { t: p.chiesa || '—' }] })));
   } else { font('normal', 10, GRIGIO); testo('Nessun registrato.', M, y); y += 8; }
 

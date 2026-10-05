@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icona-180.png">
 <link rel="icon" href="icona-192.png">
-<link rel="stylesheet" href="stile.css?v=10">
+<link rel="stylesheet" href="stile.css?v=11">
 <style>
   main { max-width: 560px; margin: 0 auto; padding: 18px 16px calc(130px + env(safe-area-inset-bottom)); }
   .titolo-vot { text-align: center; margin: 6px 0 4px; font-size: 26px; font-weight: 800; color: var(--blu-scuro); }
@@ -87,7 +87,8 @@
   .tessera b { display: block; font-size: 17px; }
   .tessera span { color: var(--grigio); font-size: 14px; }
 
-  .ruoli { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ruoli { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .ruoli .ruolo { cursor: default; }
   .ruolo { padding: 14px 10px; border-radius: 14px; border: 2px solid var(--linea); background: #fbfaf7; font-weight: 700; font-size: 16px; }
   .ruolo.scelto { border-color: var(--blu); background: #e8edfb; color: var(--blu-scuro); }
   .anteprima { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: #eef1f9; color: var(--blu-scuro); font-size: 15px; }
@@ -153,17 +154,9 @@
       <input class="campo" id="rCognome" autocomplete="family-name" autocapitalize="words">
       <div id="rRuoliBox">
         <span class="etichetta">Ruolo</span>
-        <div class="ruoli">
-          <button class="ruolo" data-ruolo="Delegato" type="button">Delegato</button>
-          <button class="ruolo" data-ruolo="Membro" type="button">Membro</button>
-        </div>
+        <div class="ruoli"><button class="ruolo scelto" id="rRuolo" type="button" tabindex="-1">Membro</button></div>
       </div>
-      <div id="rIncaricoBox" class="nascosto">
-        <label class="etichetta" for="rIncarico" id="rIncaricoEt">Il tuo incarico</label>
-        <input class="campo" id="rIncarico" list="incarichi" autocapitalize="words" placeholder="es. Presidente, Segretario, Membro">
-        <datalist id="incarichi"></datalist>
-      </div>
-      <label class="etichetta" for="rChiesa" id="rChiesaEt">Chiesa</label>
+      <label class="etichetta" for="rChiesa">Chiesa</label>
       <input class="campo" id="rChiesa" autocapitalize="words" placeholder="es. Casentino">
       <div class="anteprima" id="rAnteprima"></div>
       <button class="bt largo verde" id="rInvia" style="margin-top:18px">Registrami</button>
@@ -231,8 +224,8 @@
 </div>
 
 <script type="module">
-import { controllaVersione, db, COLLEGATO, entra, idCasuale, esc, iniziali, ruoloCompleto, nomeVotazione, dataBella, COLORI, INCARICHI, TIPI,
-         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=10';
+import { controllaVersione, db, COLLEGATO, entra, idCasuale, esc, iniziali, ruoloCompleto, nomeVotazione, dataBella, COLORI,
+         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=11';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vSenza', 'vCarica', 'vRegistra', 'vAttesa', 'vVota', 'vVotato', 'vChiusa'];
@@ -418,8 +411,8 @@ function tessera() {
 }
 
 // --- Registrazione e correzione dei dati ---
-let ruolo = '', conIncarico = false;
-$('incarichi').innerHTML = INCARICHI.map(x => `<option value="${x}">`).join('');
+// Il ruolo non si sceglie: Delegato nelle assemblee, Membro in chiesa, comitato e consiglio.
+let ruolo = '';
 function registrazione() {
   if (sessione?.chiusa) { mostraChiusa(); return; }
   schedaDi = null;
@@ -434,27 +427,16 @@ function registrazione() {
   $('rCognome').value = r?.cognome || '';
   const mieiDati = (() => { try { return JSON.parse(localStorage.getItem('mieiDati')) || {}; } catch (e) { return {}; } })();
   if (!r) { $('rNome').value = mieiDati.nome || ''; $('rCognome').value = mieiDati.cognome || ''; }
-  conIncarico = sessione.tipo === 'comitato' || sessione.tipo === 'consiglio';
-  $('rRuoliBox').classList.toggle('nascosto', conIncarico);
-  $('rIncaricoBox').classList.toggle('nascosto', !conIncarico);
-  $('rIncaricoEt').textContent = conIncarico ? `Il tuo incarico nel ${TIPI[sessione.tipo].nome.toLowerCase()}` : '';
-  $('rChiesaEt').textContent = conIncarico ? 'Chiesa (se vuoi)' : 'Chiesa';
-  if (conIncarico) { ruolo = ''; $('rIncarico').value = r?.ruolo || ''; }
-  else ruolo = r?.ruolo || (sessione.tipo === 'assemblea' ? 'Delegato' : 'Membro');
+  ruolo = sessione.tipo === 'assemblea' ? 'Delegato' : 'Membro';
+  $('rRuolo').textContent = ruolo;
   $('rChiesa').value = r?.chiesa || (sessione.tipo === 'chiesa' ? (sessione.nome || sessione.chiesa) : (mieiDati.chiesa || ''));
   aggiornaRuolo();
   mostra('vRegistra');
 }
 function aggiornaRuolo() {
-  document.querySelectorAll('.ruolo').forEach(b => b.classList.toggle('scelto', b.dataset.ruolo === ruolo));
   const ch = $('rChiesa').value.trim();
-  if (conIncarico) {
-    const inc = $('rIncarico').value.trim();
-    $('rAnteprima').innerHTML = inc ? `Il tuo incarico: <b>${esc(ruoloCompleto({ ruolo: inc, chiesa: ch }))}</b>` : 'Scrivi il tuo incarico.';
-  } else $('rAnteprima').innerHTML = `Il tuo ruolo: <b>${esc(ruolo)}${ch ? ' chiesa ' + esc(ch) : ''}</b>`;
+  $('rAnteprima').innerHTML = `Il tuo ruolo: <b>${esc(ruolo)}${ch ? ' chiesa ' + esc(ch) : ''}</b>`;
 }
-$('rIncarico').oninput = aggiornaRuolo;
-document.querySelectorAll('.ruolo').forEach(b => b.onclick = () => { ruolo = b.dataset.ruolo; aggiornaRuolo(); });
 $('rChiesa').oninput = aggiornaRuolo;
 $('correggi').onclick = $('correggi2').onclick = () => { inModifica = true; registrazione(); };
 // Un'altra votazione (per esempio un comitato online): si torna alla pagina del codice.
@@ -465,10 +447,9 @@ $('altra').onclick = $('altra2').onclick = $('altra3').onclick = () => {
 $('rAnnulla').onclick = () => { inModifica = false; disegna(); };
 $('rInvia').onclick = async () => {
   const pulisci = t => t.trim().replace(/\s+/g, ' ');
-  const dati = { nome: pulisci($('rNome').value), cognome: pulisci($('rCognome').value), ruolo: conIncarico ? pulisci($('rIncarico').value) : ruolo, chiesa: pulisci($('rChiesa').value), t: serverTimestamp() };
+  const dati = { nome: pulisci($('rNome').value), cognome: pulisci($('rCognome').value), ruolo, chiesa: pulisci($('rChiesa').value), t: serverTimestamp() };
   if (!dati.nome || !dati.cognome) { $('rErrore').textContent = 'Scrivi nome e cognome.'; return; }
-  if (conIncarico && !dati.ruolo) { $('rErrore').textContent = 'Scrivi il tuo incarico.'; return; }
-  if (!conIncarico && !dati.chiesa) { $('rErrore').textContent = 'Scrivi la tua chiesa.'; return; }
+  if (!dati.chiesa) { $('rErrore').textContent = 'Scrivi la tua chiesa.'; return; }
   try { localStorage.setItem('mieiDati', JSON.stringify({ nome: dati.nome, cognome: dati.cognome, chiesa: dati.chiesa })); } catch (e) {}
   $('rInvia').disabled = true; $('rErrore').textContent = '';
   try {

@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=10">
+<link rel="stylesheet" href="stile.css?v=11">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -268,8 +268,10 @@
       <div class="tipi" id="tipi"></div>
       <label class="etichetta" for="nNome" id="nNomeEt">Nome della chiesa</label>
       <input class="campo" id="nNome" autocapitalize="words">
-      <label class="etichetta" for="nRaduno">Nome del raduno</label>
-      <input class="campo" id="nRaduno" placeholder="es. Elezione dei responsabili 2027" autocapitalize="sentences">
+      <div id="nRadunoBox">
+        <label class="etichetta" for="nRaduno">Nome del raduno</label>
+        <input class="campo" id="nRaduno" placeholder="es. Elezione dei responsabili 2027" autocapitalize="sentences">
+      </div>
       <label class="etichetta" for="nData">Data</label>
       <input class="campo" id="nData" type="date">
       <label class="etichetta" for="nVotanti">Numero dei votanti</label>
@@ -417,12 +419,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=10';
-import { creaRapporto } from './rapporto.js?v=10';
+import qrcode from './qrcode.mjs?v=11';
+import { creaRapporto } from './rapporto.js?v=11';
 import { controllaVersione, db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=10';
+  from './comune.js?v=11';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
@@ -557,7 +559,10 @@ function disegnaTipi() {
   document.querySelectorAll('.tipo').forEach(b => b.onclick = () => { tipo = b.dataset.tipo; aggiornaTipo(); });
   aggiornaTipo();
 }
+// Comitato e consiglio non hanno il nome del raduno: basta il loro nome.
+const conRaduno = t => t === 'assemblea' || t === 'chiesa';
 function aggiornaTipo() {
+  $('nRadunoBox').classList.toggle('nascosto', !conRaduno(tipo));
   document.querySelectorAll('.tipo').forEach(b => b.classList.toggle('scelto', b.dataset.tipo === tipo));
   $('nNomeEt').textContent = TIPI[tipo].etichetta;
   $('nNome').placeholder = TIPI[tipo].esempio;
@@ -570,10 +575,10 @@ disegnaTipi(); $('nData').value = oggi();
 
 $('crea').onclick = async () => {
   const pulisci = t => t.trim().replace(/\s+/g, ' ');
-  const nome = pulisci($('nNome').value), raduno = pulisci($('nRaduno').value), data = $('nData').value || oggi();
+  const nome = pulisci($('nNome').value), raduno = conRaduno(tipo) ? pulisci($('nRaduno').value) : '', data = $('nData').value || oggi();
   const votanti = $('nVotanti').value.trim() ? parseInt($('nVotanti').value, 10) : null;
   if (!nome) { $('creaErr').textContent = 'Scrivi: ' + TIPI[tipo].etichetta.toLowerCase() + '.'; return; }
-  if (!raduno) { $('creaErr').textContent = 'Scrivi il nome del raduno.'; return; }
+  if (conRaduno(tipo) && !raduno) { $('creaErr').textContent = 'Scrivi il nome del raduno.'; return; }
   if ($('nVotanti').value.trim() && !(votanti > 0)) { $('creaErr').textContent = 'Il numero dei votanti non è giusto.'; return; }
   $('crea').disabled = true; $('creaErr').textContent = '';
   const titolo = nomeVotazione({ tipo, nome }).replace(/^Votazione /, '');

@@ -5,7 +5,7 @@ import { getAuth, signInAnonymously, connectAuthEmulator, signInWithEmailAndPass
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { initializeFirestore, connectFirestoreEmulator, doc, getDoc }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import { FIREBASE } from './config.js?v=10';
+import { FIREBASE } from './config.js?v=11';
 
 export * from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
@@ -29,7 +29,7 @@ export { db, auth };
 
 // ---------- Versione: se su Internet ce n'è una più nuova, la pagina si ricarica da sola ----------
 // (va cambiata insieme a versione.txt e ai «?v=» delle pagine a ogni pubblicazione)
-export const VERSIONE = '10';
+export const VERSIONE = '11';
 export async function controllaVersione() {
   try {
     const r = await fetch('versione.txt?x=' + Date.now(), { cache: 'no-store' });
@@ -64,7 +64,6 @@ export function nomeVotazione(s) {
   if (s.nome && TIPI[s.tipo]) return `Votazione ${TIPI[s.tipo].breve} ${s.nome}`;
   return 'Votazione ' + (s.titolo || '');   // sessioni fatte prima dei tipi nuovi
 }
-export const INCARICHI = ['Presidente', 'Vicepresidente', 'Segretario', 'Tesoriere', 'Membro'];
 export const TUTTI_I_TIPI = Object.keys(TIPI);
 
 // ---------- Chi vota: un numero anonimo, niente password ----------
