@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=9">
+<link rel="stylesheet" href="stile.css?v=10">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -417,12 +417,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=9';
-import { creaRapporto } from './rapporto.js?v=9';
+import qrcode from './qrcode.mjs?v=10';
+import { creaRapporto } from './rapporto.js?v=10';
 import { controllaVersione, db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=9';
+  from './comune.js?v=10';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];

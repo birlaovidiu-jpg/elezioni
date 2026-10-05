@@ -1,6 +1,6 @@
 // Rapporto PDF delle votazioni su carta intestata (come nel programma delle Pubblicazioni):
 // fascia blu con il logo bianco, la chiesa a sinistra e il nome del foglio a destra.
-import { CHIESA, nomeVotazione, dataBella, righeRisultato, notaNessuno } from './comune.js?v=9';
+import { CHIESA, nomeVotazione, dataBella, righeRisultato, notaNessuno } from './comune.js?v=10';
 
 let pronto = null;
 function caricaScript(src) {
@@ -57,13 +57,17 @@ export async function creaRapporto({ codice, sessione, iscritti, votazioni, risu
     const lh = 26, lw = lh * R.ratio;
     pdf.addImage(R.bianco, 'PNG', M, 9, lw, lh);
     const tx = M + lw + 6, larg = 112 - lw;
+    // Prima riga: «Elezioni e Votazioni | Campo Italiano», separati da una linea.
     font('bold', 17, [255, 255, 255]); testo(CHIESA.programma, tx, 16);
-    font('normal', 8.6, [225, 232, 245]); testo(taglia(CHIESA.denominazione, larg + 10), tx, 22);
-    font('bold', 11, [255, 255, 255]); testo(CHIESA.campo, tx, 28.5);
-    font('normal', 8.2, [215, 225, 240]); testo(taglia(CHIESA.indirizzo, larg + 10), tx, 34);
-    font('bold', 13, [255, 255, 255]); testo('Rapporto delle votazioni', W - M, 17, { align: 'right' });
-    font('normal', 9, [225, 232, 245]); testo(taglia(nomeV, 64), W - M, 23.5, { align: 'right' });
-    testo(dataBella(sessione.data), W - M, 29, { align: 'right' });
+    const xLinea = tx + pdf.getTextWidth(CHIESA.programma) + 4;
+    pdf.setDrawColor(190, 205, 228); pdf.setLineWidth(0.4); pdf.line(xLinea, 11, xLinea, 17.2);
+    font('bold', 11, [255, 255, 255]); testo(CHIESA.campo, xLinea + 4, 16);
+    font('normal', 8.6, [225, 232, 245]); testo(taglia(CHIESA.denominazione, larg + 10), tx, 23);
+    font('normal', 8.2, [215, 225, 240]); testo(taglia(CHIESA.indirizzo, larg + 10), tx, 29.5);
+    // A destra, più in basso, per non toccare la prima riga.
+    font('bold', 13, [255, 255, 255]); testo('Rapporto delle votazioni', W - M, 28, { align: 'right' });
+    font('normal', 9, [225, 232, 245]); testo(taglia(nomeV, 64), W - M, 34, { align: 'right' });
+    testo(dataBella(sessione.data), W - M, 39.5, { align: 'right' });
     y = h + 10;
   }
   function intestazionePiccola() {
