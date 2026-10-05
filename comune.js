@@ -5,7 +5,7 @@ import { getAuth, signInAnonymously, connectAuthEmulator, signInWithEmailAndPass
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { initializeFirestore, connectFirestoreEmulator, doc, getDoc }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import { FIREBASE } from './config.js?v=6';
+import { FIREBASE } from './config.js?v=7';
 
 export * from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 

@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icona-180.png">
 <link rel="icon" href="icona-192.png">
-<link rel="stylesheet" href="stile.css?v=6">
+<link rel="stylesheet" href="stile.css?v=7">
 <style>
   main { max-width: 560px; margin: 0 auto; padding: 18px 16px calc(130px + env(safe-area-inset-bottom)); }
   .titolo-vot { text-align: center; margin: 6px 0 4px; font-size: 26px; font-weight: 800; color: var(--blu-scuro); }
@@ -198,14 +198,26 @@
     <button class="bt largo chiaro" id="correggi2" style="margin-top:16px;font-size:15px;padding:11px">✏️ Correggi i miei dati</button>
     <button class="bt largo chiaro" id="altra2" style="margin-top:10px;font-size:15px;padding:11px">🔑 Entra in un'altra votazione con un codice</button>
   </section>
+
+  <!-- Sessione chiusa dal segretario -->
+  <section id="vChiusa" class="nascosto">
+    <div class="scheda stato">
+      <img class="logo-attesa" src="logo.png" alt="" style="animation:none">
+      <div class="nome-vot" id="chiusaNome"></div>
+      <div class="raduno-vot" id="chiusaRaduno"></div>
+      <div class="stato-pill chiusa">🔒 Sessione chiusa</div>
+      <p style="margin-top:12px">Le votazioni di questo raduno sono finite. Grazie!</p>
+    </div>
+    <button class="bt largo chiaro" id="altra3" style="margin-top:16px;font-size:15px;padding:11px">🔑 Entra in un'altra votazione con un codice</button>
+  </section>
 </main>
 
 <script type="module">
 import { db, COLLEGATO, entra, idCasuale, esc, iniziali, ruoloCompleto, nomeVotazione, dataBella, COLORI, INCARICHI, TIPI,
-         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=6';
+         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=7';
 
 const $ = id => document.getElementById(id);
-const VISTE = ['vSenza', 'vCarica', 'vRegistra', 'vAttesa', 'vVota', 'vVotato'];
+const VISTE = ['vSenza', 'vCarica', 'vRegistra', 'vAttesa', 'vVota', 'vVotato', 'vChiusa'];
 function mostra(v) { VISTE.forEach(x => $(x).classList.toggle('nascosto', x !== v)); scrollTo(0, 0); }
 
 
@@ -247,6 +259,7 @@ async function avvio() {
   sessione = ds.data();
   $('intestazione').textContent = nomeVotazione(sessione);
   $('sottotitolo').textContent = [sessione.raduno, 'Voto segreto'].filter(Boolean).join(' · ');
+  if (sessione.chiusa) { mostraChiusa(); bannerInstalla(); return; }
   ascolta();
   bannerInstalla();
 }
@@ -272,6 +285,7 @@ function ascolta() {
   });
   onSnapshot(doc(db, 'sessioni', S), snap => {
     sessione = snap.data();
+    if (sessione.chiusa) { mostraChiusa(); return; }
     const nuovo = sessione.corrente || null;
     if (nuovo === vId) return;
     vId = nuovo; votazione = null; giaVotato = null; schedaDi = null; fermaVot?.(); fermaVot = null;
@@ -290,7 +304,13 @@ function ascolta() {
 }
 
 // Mostra la schermata giusta per come stanno le cose adesso.
+function mostraChiusa() {
+  $('chiusaNome').textContent = nomeVotazione(sessione);
+  $('chiusaRaduno').textContent = [sessione.raduno, dataBella(sessione.data)].filter(Boolean).join(' · ');
+  mostra('vChiusa');
+}
 function disegna() {
+  if (sessione?.chiusa) { mostraChiusa(); return; }
   if (!iscritto || inModifica) return;
   if (!vId || !votazione) { attesa(); return; }
   if (votazione.stato !== 'aperta') { attesa('chiusa'); return; }
@@ -318,6 +338,7 @@ function tessera() {
 let ruolo = '', conIncarico = false;
 $('incarichi').innerHTML = INCARICHI.map(x => `<option value="${x}">`).join('');
 function registrazione() {
+  if (sessione?.chiusa) { mostraChiusa(); return; }
   schedaDi = null;
   const r = inModifica ? iscritto : null;
   $('rTolto').classList.toggle('nascosto', !tolto || inModifica);
@@ -354,7 +375,7 @@ document.querySelectorAll('.ruolo').forEach(b => b.onclick = () => { ruolo = b.d
 $('rChiesa').oninput = aggiornaRuolo;
 $('correggi').onclick = $('correggi2').onclick = () => { inModifica = true; registrazione(); };
 // Un'altra votazione (per esempio un comitato online): si torna alla pagina del codice.
-$('altra').onclick = $('altra2').onclick = () => {
+$('altra').onclick = $('altra2').onclick = $('altra3').onclick = () => {
   localStorage.removeItem('sessione'); localStorage.removeItem('ultimoQR');
   location.replace(location.pathname);
 };

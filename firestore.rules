@@ -58,14 +58,17 @@ service cloud.firestore {
       allow list: if direttore() || (utente() && resource.data.owner == request.auth.uid);
       allow create: if request.resource.data.owner == request.auth.uid
         && (direttore() || (utente() && request.resource.data.tipo in tipiUtente()));
+      // Una sessione chiusa resta chiusa (solo il Direttore potrebbe riaprirla).
       allow update: if segretario(s)
-        && (direttore() || request.resource.data.get('owner', '') == resource.data.get('owner', ''));
+        && (direttore() || (request.resource.data.get('owner', '') == resource.data.get('owner', '')
+            && !(resource.data.get('chiusa', false) == true && request.resource.data.get('chiusa', false) != true)));
 
       // Registrazione di chi vota: nome, cognome, ruolo o incarico, chiesa.
       match /iscritti/{uid} {
         allow read: if entrato() && (request.auth.uid == uid || segretario(s));
         allow create, update: if entrato() && request.auth.uid == uid
           && exists(/databases/$(database)/documents/sessioni/$(s))
+          && get(/databases/$(database)/documents/sessioni/$(s)).data.get('chiusa', false) != true
           && request.resource.data.keys().hasOnly(['nome', 'cognome', 'ruolo', 'chiesa', 't'])
           && testo(request.resource.data.nome, 1, 60)
           && testo(request.resource.data.cognome, 1, 60)
@@ -77,7 +80,10 @@ service cloud.firestore {
 
       match /votazioni/{v} {
         allow read: if entrato();
-        allow create, update: if segretario(s);
+        // Nessuna votazione nuova quando la sessione è chiusa.
+        allow create: if segretario(s)
+          && get(/databases/$(database)/documents/sessioni/$(s)).data.get('chiusa', false) != true;
+        allow update: if segretario(s);
 
         // Solo CHI ha votato (vuoto: nessun contenuto).
         match /votati/{uid} {
@@ -85,6 +91,7 @@ service cloud.firestore {
           allow create: if entrato() && request.auth.uid == uid
             && request.resource.data.keys().size() == 0
             && get(/databases/$(database)/documents/sessioni/$(s)/votazioni/$(v)).data.stato == 'aperta'
+            && get(/databases/$(database)/documents/sessioni/$(s)).data.get('chiusa', false) != true
             && exists(/databases/$(database)/documents/sessioni/$(s)/iscritti/$(uid));
         }
       }

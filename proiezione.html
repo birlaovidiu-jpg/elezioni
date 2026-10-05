@@ -106,8 +106,8 @@
 <button class="tasto" id="tutto">⛶ Tutto schermo</button>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=6';
-import { db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, righeRisultato, notaNessuno, doc, collection, onSnapshot } from './comune.js?v=6';
+import qrcode from './qrcode.mjs?v=7';
+import { db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, righeRisultato, notaNessuno, doc, collection, onSnapshot } from './comune.js?v=7';
 
 const $ = id => document.getElementById(id);
 const S = (new URLSearchParams(location.search).get('s') || '').toUpperCase();
@@ -173,6 +173,12 @@ function disegna() {
             <div class="b"><i style="width:${x.voti / max * 100}%"></i></div></div>
           <div class="v"><b>${x.voti}</b><span>${x.perc.toLocaleString('it-IT')}%</span></div></div>`; }).join('')}</div>
       ${avviso}</div>`;
+    return;
+  }
+  if (sessione.chiusa) {
+    c.innerHTML = `<div class="corso"><img src="logo-bianco.png" alt="" style="width:min(30vh,26vw)">
+      <h1>${esc(nomeVotazione(sessione))}</h1><div class="scelte">${esc([sessione.raduno, dataBella(sessione.data)].filter(Boolean).join(' · '))}</div>
+      <div class="tutti" style="margin-top:4vh">🔒 Sessione chiusa · le votazioni sono finite</div></div>`;
     return;
   }
   // In attesa: logo, nome della votazione e QR code per entrare.

@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=6">
+<link rel="stylesheet" href="stile.css?v=7">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -118,6 +118,19 @@
   .storico button { text-align: left; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--linea); background: #fbfaf7; }
   .storico button.attivo { border-color: var(--blu); background: #eef1f9; }
   .storico .vinc { color: var(--verde); font-weight: 700; }
+  .storico .ballo-et { color: #b26b00; font-weight: 700; }
+  .storico .in-corso-et { color: var(--rosso); font-weight: 700; }
+  .storico .nessuno-et { color: var(--grigio); font-weight: 600; }
+  .storico .giri { display: inline-block; margin-left: 8px; padding: 2px 9px; border-radius: 99px; background: #fff3dc; color: #9a5b00; font-size: 12.5px; font-weight: 700; }
+  .blocco + .blocco { margin-top: 22px; padding-top: 18px; border-top: 2px dashed var(--linea); }
+  .eletto-et { display: inline-block; margin-top: 6px; padding: 6px 14px; border-radius: 99px; background: var(--verde-chiaro); color: var(--verde); font-weight: 800; font-size: 16px; }
+  #pRis > #rSotto + #rBlocchi { margin-top: 14px; }
+  .blocco h3.giro { margin: 0 0 4px; font-size: 18px; color: var(--blu-scuro); }
+  .blocco .riassunto { margin: 12px 0 14px; }
+  .etic-chiusa { padding: 10px 16px; border-radius: 12px; background: #fee2e2; color: var(--rosso); font-weight: 900; letter-spacing: .5px; }
+  .avviso-chiusa { background: #fff1f1; border-color: #f3c4c4; color: #7f1d1d; font-size: 16px; }
+  .sess-chiusa .iscritto .togli { display: none; }
+  .sess .chiusa-et { font-size: 11.5px; font-weight: 900; color: var(--rosso); background: #fee2e2; border-radius: 99px; padding: 2px 8px; margin-left: 6px; }
 
   .velo { position: fixed; inset: 0; background: rgba(255,255,255,.97); display: grid; place-items: center; z-index: 50; cursor: zoom-out; padding: 20px; }
   .velo .qr-grande { width: min(82vh, 92vw); }
@@ -177,7 +190,12 @@
   .bt.bianco:hover { border-color: var(--blu); }
 
   /* ---------- Impostazioni ---------- */
-  .impost { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; align-items: start; }
+  .impost { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr); gap: 20px; align-items: start; }
+  .impost .colonna { display: grid; gap: 20px; align-content: start; min-width: 0; }
+  .impost .colonna:empty { display: none; }
+  .impost.solo { grid-template-columns: minmax(0, 520px); }
+  .impost.solo .colonna:first-child { display: none; }
+  @media (max-width: 900px) { .impost { grid-template-columns: 1fr; } }
   .persona { display: grid; grid-template-columns: 42px 1fr; align-items: center; gap: 6px 12px; padding: 14px 0; border-bottom: 1px solid var(--linea); }
   .persona .azioni { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px; }
   .persona .ini { width: 42px; height: 42px; border-radius: 50%; background: var(--blu); color: #fff; display: grid; place-items: center; font-weight: 800; flex: none; }
@@ -275,6 +293,8 @@
       <div class="titolo-sess"><b id="sTitolo"></b><span id="sSotto"></span></div>
       <button class="bt bianco" id="btProiezione">📺 Proiezione</button>
       <button class="bt bianco" id="btRapporto">📄 Rapporto PDF</button>
+      <button class="bt rosso" id="btChiudiSess">🔒 Chiudi sessione</button>
+      <span class="etic-chiusa nascosto" id="sChiusaEt">🔒 SESSIONE CHIUSA</span>
     </div>
     <div class="griglia">
     <aside class="scheda">
@@ -292,6 +312,7 @@
     </aside>
 
     <div style="display:grid;gap:20px">
+      <div class="scheda avviso-chiusa nascosto" id="pChiusa">🔒 <b>Questa sessione è chiusa.</b> Non si può più votare né registrarsi: si possono solo vedere i risultati e fare il rapporto PDF.</div>
       <!-- Nuova votazione -->
       <div class="scheda nascosto" id="pNuova">
         <h2>Nuova votazione</h2>
@@ -333,9 +354,7 @@
       <div class="scheda nascosto" id="pRis">
         <h2 id="rTit"></h2>
         <div class="piccolo" id="rSotto"></div>
-        <div class="riassunto" id="rNum"></div>
-        <div id="rNota"></div>
-        <div id="rRighe"></div>
+        <div id="rBlocchi"></div>
         <button class="bt largo" id="nuova" style="margin-top:12px">+ Nuova votazione</button>
         <button class="bt largo chiaro nascosto" id="chiudiRis" style="margin-top:10px">Chiudi questa scheda</button>
       </div>
@@ -350,42 +369,47 @@
 
   <!-- IMPOSTAZIONI -->
   <section id="vImpost" class="impost nascosto">
-    <div class="scheda nascosto" id="pPersone">
-      <h2>Persone che lavorano con il programma</h2>
-      <div class="piccolo">Ognuno vede e lavora solo le sue sessioni. Tu, come Direttore, vedi tutto.</div>
-      <div id="persone" style="margin-top:8px"></div>
+    <!-- a sinistra: chi lavora e le credenziali; a destra: aggiungere una persona e la mia password -->
+    <div class="colonna">
+      <div class="scheda nascosto" id="pPersone">
+        <h2>Persone che lavorano con il programma</h2>
+        <div class="piccolo">Ognuno vede e lavora solo le sue sessioni. Tu, come Direttore, vedi tutto.</div>
+        <div id="persone" style="margin-top:8px"></div>
+      </div>
+      <div class="scheda nascosto" id="pCredenziali">
+        <h2>Credenziali</h2>
+        <div class="piccolo">Nome utente e password di tutti. Le vedi solo tu. Premi 👁 per vedere una password.</div>
+        <div id="credenziali" style="margin-top:8px"></div>
+      </div>
     </div>
-    <div class="scheda nascosto" id="pAggiungi">
-      <h2>Aggiungi una persona</h2>
-      <div class="piccolo">Scegli tu il nome utente e la password, poi dalli a questa persona.</div>
-      <label class="etichetta" for="pNome">Nome e cognome</label>
-      <input class="campo" id="pNome" autocapitalize="words" autocomplete="off">
-      <label class="etichetta" for="pUtente">Nome utente</label>
-      <input class="campo" id="pUtente" autocapitalize="none" spellcheck="false" autocomplete="off" placeholder="es. mario.rossi">
-      <label class="etichetta" for="pPass">Password</label>
-      <input class="campo" id="pPass" type="text" autocomplete="off" spellcheck="false" placeholder="almeno 6 caratteri">
-      <span class="etichetta">Può vedere e lavorare su</span>
-      <div class="permessi" id="pTipi"></div>
-      <button class="bt largo" id="pAggiungiBt" style="margin-top:16px">Aggiungi</button>
-      <div class="errore" id="pErr"></div>
-      <div class="ok" id="pOk"></div>
-    </div>
-    <div class="scheda nascosto" id="pCredenziali">
-      <h2>Credenziali</h2>
-      <div class="piccolo">Nome utente e password di tutti. Le vedi solo tu. Premi 👁 per vedere una password.</div>
-      <div id="credenziali" style="margin-top:8px"></div>
-    </div>
-    <div class="scheda">
-      <h2>La mia password</h2>
-      <label class="etichetta" for="mVecchia">Password di adesso</label>
-      <input class="campo" id="mVecchia" type="password" autocomplete="current-password">
-      <label class="etichetta" for="mNuova">Password nuova</label>
-      <input class="campo" id="mNuova" type="password" autocomplete="new-password">
-      <label class="etichetta" for="mNuova2">Scrivi di nuovo la password nuova</label>
-      <input class="campo" id="mNuova2" type="password" autocomplete="new-password">
-      <button class="bt largo chiaro" id="mCambia" style="margin-top:16px">Cambia la password</button>
-      <div class="errore" id="mErr"></div>
-      <div class="ok" id="mOk"></div>
+    <div class="colonna">
+      <div class="scheda nascosto" id="pAggiungi">
+        <h2>Aggiungi una persona</h2>
+        <div class="piccolo">Scegli tu il nome utente e la password, poi dalli a questa persona.</div>
+        <label class="etichetta" for="pNome">Nome e cognome</label>
+        <input class="campo" id="pNome" autocapitalize="words" autocomplete="off">
+        <label class="etichetta" for="pUtente">Nome utente</label>
+        <input class="campo" id="pUtente" autocapitalize="none" spellcheck="false" autocomplete="off" placeholder="es. mario.rossi">
+        <label class="etichetta" for="pPass">Password</label>
+        <input class="campo" id="pPass" type="text" autocomplete="off" spellcheck="false" placeholder="almeno 6 caratteri">
+        <span class="etichetta">Può vedere e lavorare su</span>
+        <div class="permessi" id="pTipi"></div>
+        <button class="bt largo" id="pAggiungiBt" style="margin-top:16px">Aggiungi</button>
+        <div class="errore" id="pErr"></div>
+        <div class="ok" id="pOk"></div>
+      </div>
+      <div class="scheda" id="pMiaPassword">
+        <h2>La mia password</h2>
+        <label class="etichetta" for="mVecchia">Password di adesso</label>
+        <input class="campo" id="mVecchia" type="password" autocomplete="current-password">
+        <label class="etichetta" for="mNuova">Password nuova</label>
+        <input class="campo" id="mNuova" type="password" autocomplete="new-password">
+        <label class="etichetta" for="mNuova2">Scrivi di nuovo la password nuova</label>
+        <input class="campo" id="mNuova2" type="password" autocomplete="new-password">
+        <button class="bt largo chiaro" id="mCambia" style="margin-top:16px">Cambia la password</button>
+        <div class="errore" id="mErr"></div>
+        <div class="ok" id="mOk"></div>
+      </div>
     </div>
   </section>
 </main>
@@ -393,12 +417,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=6';
-import { creaRapporto } from './rapporto.js?v=6';
+import qrcode from './qrcode.mjs?v=7';
+import { creaRapporto } from './rapporto.js?v=7';
 import { db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=6';
+  from './comune.js?v=7';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
@@ -470,6 +494,7 @@ quandoCambiaAccesso(async u => {
   $('pPersone').classList.toggle('nascosto', !io.direttore);
   $('pAggiungi').classList.toggle('nascosto', !io.direttore);
   $('pCredenziali').classList.toggle('nascosto', !io.direttore);
+  $('vImpost').classList.toggle('solo', !io.direttore);
   disegnaTipi();
   avviaArchivio();
   if (io.direttore) avviaPersone();
@@ -514,7 +539,7 @@ function disegnaArchivio() {
   let l = sessioni.filter(x => io.direttore ? (filtro === 'tutti' || (x.owner || '') === filtro) : io.tipi.includes(x.tipo));
   l.sort((a, b) => (b.data || '').localeCompare(a.data || '') || (b.creata?.seconds || 0) - (a.creata?.seconds || 0));
   $('mie').innerHTML = l.length ? l.map(x => `<button class="sess" data-s="${esc(x.s)}">
-      <span class="riga1"><span class="em">${TIPI[x.tipo]?.em || '🗳️'}</span><span class="tipo-et">${esc(TIPI[x.tipo]?.nome || '')}</span><span class="cod">${esc(x.s)}</span></span>
+      <span class="riga1"><span class="em">${TIPI[x.tipo]?.em || '🗳️'}</span><span class="tipo-et">${esc(TIPI[x.tipo]?.nome || '')}</span>${x.chiusa ? '<span class="chiusa-et">CHIUSA</span>' : ''}<span class="cod">${esc(x.s)}</span></span>
       <b>${esc(x.raduno || nomeVotazione(x))}</b>
       <small>${esc([x.raduno ? nomeVotazione(x) : '', dataBella(x.data)].filter(Boolean).join(' · '))}</small>
       ${io.direttore ? `<span class="di">di <i>${esc(nomeDi(x.owner))}</i></span>` : ''}</button>`).join('')
@@ -634,10 +659,30 @@ $('sVotanti').onkeydown = e => { if (e.key === 'Enter') $('sVotanti').blur(); };
 
 function corrente() { return sessione && votazioni.find(v => v.id === sessione.corrente); }
 
+// Le votazioni raggruppate per incarico: la prima votazione e i suoi ballottaggi, in ordine.
+function gruppi() {
+  return votazioni.filter(v => !v.ballottaggioDi).map(prima => {
+    const giri = [prima]; let x = prima;
+    while ((x = votazioni.find(v => v.ballottaggioDi === x.id))) giri.push(x);
+    return giri;
+  });
+}
+function radiceDi(id) {
+  let v = votazioni.find(x => x.id === id);
+  while (v?.ballottaggioDi) v = votazioni.find(x => x.id === v.ballottaggioDi);
+  return v?.id || id;
+}
+
 function disegna() {
   if (!sessione) return;
   const c = corrente();
   const aperta = c && c.stato === 'aperta' ? c : null;
+  const chiusa = sessione.chiusa === true;
+  $('vSess').classList.toggle('sess-chiusa', chiusa);
+  $('sChiusaEt').classList.toggle('nascosto', !chiusa);
+  $('pChiusa').classList.toggle('nascosto', !chiusa);
+  $('btChiudiSess').classList.toggle('nascosto', chiusa);
+  $('sVotanti').disabled = chiusa;
   $('pCorso').classList.toggle('nascosto', !aperta);
   if (aperta) {
     if (votatiDi !== aperta.id) {
@@ -653,19 +698,37 @@ function disegna() {
     }
   } else { fermaVotati?.(); fermaVotati = null; votatiDi = null; }
 
-  if (vistaRis && !votazioni.some(v => v.id === vistaRis && v.stato === 'chiusa')) vistaRis = null;
+  const G = gruppi();
+  if (vistaRis && !G.some(g => g[0].id === vistaRis && g.some(v => v.stato === 'chiusa'))) vistaRis = null;
   $('pRis').classList.toggle('nascosto', !vistaRis);
-  $('pNuova').classList.toggle('nascosto', !!aperta || !!vistaRis);
-  $('nuova').classList.toggle('nascosto', !!aperta);
-  $('chiudiRis').classList.toggle('nascosto', !aperta);
-  if (vistaRis) mostraRisultato(vistaRis);
-  else if (!aperta) nuovaVotazione();
+  $('pNuova').classList.toggle('nascosto', !!aperta || !!vistaRis || chiusa);
+  $('nuova').classList.toggle('nascosto', !!aperta || chiusa);
+  $('chiudiRis').classList.toggle('nascosto', !aperta && !chiusa);
+  if (vistaRis) mostraGruppo(vistaRis);
+  else if (!aperta && !chiusa) nuovaVotazione();
+  disegnaStorico();
+}
 
-  // Votazioni di questa sessione: la prima in alto, poi le altre nell'ordine in cui si è votato.
-  const chiuse = votazioni.filter(v => v.stato === 'chiusa');
-  $('pStorico').classList.toggle('nascosto', !chiuse.length);
-  $('storico').innerHTML = chiuse.map(v => `<button data-v="${v.id}" class="${vistaRis === v.id ? 'attivo' : ''}">
-      <b>${v.n}. ${esc(v.titolo)}</b> &nbsp; <span class="vinc">${v.vinti?.length ? '✓ ' + esc(v.vinti.join(', ')) : ''}</span>${v.ballottaggio?.length ? ` <span style="color:#b26b00;font-weight:700">⟳ ballottaggio: ${esc(v.ballottaggio.join(', '))}</span>` : ''}</button>`).join('');
+// Votazioni di questa sessione: un incarico per riga, nell'ordine, con il risultato finale.
+const inLettura = new Set();
+function disegnaStorico() {
+  const G = gruppi().filter(g => g.some(v => v.stato === 'chiusa'));
+  $('pStorico').classList.toggle('nascosto', !G.length);
+  $('storico').innerHTML = G.map((g, k) => {
+    const ultimo = g[g.length - 1], prima = g[0];
+    let esito;
+    if (ultimo.stato === 'aperta') esito = '<span class="in-corso-et">⏳ ballottaggio in corso</span>';
+    else if (ultimo.vinti?.length) {
+      const r = risultatiLetti[S + ultimo.id];
+      if (!r && !inLettura.has(ultimo.id)) { inLettura.add(ultimo.id); leggiRisultato(ultimo).then(disegnaStorico).catch(() => {}); }
+      const voti = n => { const i = ultimo.candidati.indexOf(n); return r && i >= 0 ? ` — ${r.voti[i]} ${r.voti[i] === 1 ? 'voto' : 'voti'}` : ''; };
+      esito = `<span class="vinc">✓ ${ultimo.vinti.map(n => esc(n) + voti(n)).join(', ')}</span>`;
+    } else if (ultimo.ballottaggio?.length) esito = `<span class="ballo-et">⟳ va al ballottaggio: ${esc(ultimo.ballottaggio.join(', '))}</span>`;
+    else esito = '<span class="nessuno-et">nessun eletto</span>';
+    const giri = g.length > 1 ? `<span class="giri">${g.length - 1} ${g.length - 1 === 1 ? 'ballottaggio' : 'ballottaggi'}</span>` : '';
+    return `<button data-v="${prima.id}" class="${vistaRis === prima.id ? 'attivo' : ''}">
+      <b>${k + 1}. ${esc(prima.titolo)}</b> &nbsp; ${esito} ${giri}</button>`;
+  }).join('');
   $('storico').querySelectorAll('button').forEach(b => b.onclick = () => {
     vistaRis = b.dataset.v; disegna();
     $('pRis').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -729,6 +792,7 @@ $('avvia').onclick = async () => {
   $('avvia').disabled = false;
 };
 async function apriVotazione(titolo, candidati, scelte, da) {
+  if (sessione.chiusa) { alert('La sessione è chiusa: non si possono aprire altre votazioni.'); return false; }
   const votanti = sessione.votanti > 0 ? sessione.votanti : null;
   const v = String(Date.now());
   const n = votazioni.length + 1;
@@ -756,7 +820,8 @@ $('fine').onclick = async () => {
     const r = conta({ ...c, votanti }, schede);
     await setDoc(doc(db, 'sessioni', S, 'risultati', c.id), { ...r, votati: nVotati });
     await updateDoc(doc(db, 'sessioni', S, 'votazioni', c.id), { vinti: r.vinti.map(i => c.candidati[i]), ballottaggio: r.ballottaggio.map(i => c.candidati[i]) });
-    vistaRis = c.id;
+    risultatiLetti[S + c.id] = { ...r, votati: nVotati };
+    vistaRis = radiceDi(c.id);
     disegna();
   } catch (e) { console.warn(e); alert('Qualcosa non ha funzionato. Riprova a premere «Fine votazione».'); stato(); }
 };
@@ -774,20 +839,37 @@ async function leggiRisultato(v) {
   }
   return risultatiLetti[S + v.id] = r;
 }
-async function mostraRisultato(vId) {
-  const v = votazioni.find(x => x.id === vId);
-  if (!v) return;
-  const r = await leggiRisultato(v);
-  if (vistaRis !== vId) return;
+// La scheda di un incarico: la prima votazione e poi tutti i ballottaggi, uno sotto l'altro.
+async function mostraGruppo(idPrima) {
+  const k = gruppi().findIndex(g => g[0].id === idPrima);
+  const giri = gruppi()[k]?.filter(v => v.stato === 'chiusa') || [];
+  if (!giri.length) return;
+  const ris = await Promise.all(giri.map(leggiRisultato));
+  if (vistaRis !== idPrima) return;
+  const ultimo = giri[giri.length - 1], rU = ris[ris.length - 1];
+  $('rTit').textContent = `${k + 1}. ${giri[0].titolo}`;
+  $('rSotto').innerHTML = rU.vinti.length ? `<span class="eletto-et">✓ ${rU.vinti.length > 1 ? 'Eletti' : 'Eletto'}: ${esc(rU.vinti.map(i => ultimo.candidati[i]).join(', '))}</span>`
+    : giri.length > 1 ? `Prima votazione e ${giri.length - 1} ${giri.length === 2 ? 'ballottaggio' : 'ballottaggi'}` : '';
+  $('rBlocchi').innerHTML = giri.map((v, i) => bloccoRisultato(v, ris[i], i === 0 ? (giri.length > 1 ? 'Prima votazione' : '') : `${i}° ballottaggio`, i === giri.length - 1)).join('');
+  $('avviaBallo')?.addEventListener('click', async () => {
+    const r = rU, v = ultimo, nomi = (r.ballottaggio || []).map(i => v.candidati[i]);
+    if (!confirm(`Aprire il ballottaggio tra:\n${nomi.join('\n')}?`)) return;
+    $('avviaBallo').disabled = true;
+    const titolo = 'Ballottaggio – ' + v.titolo.replace(/^Ballottaggio – /, '');
+    if (!await apriVotazione(titolo, nomi, r.posti, v.id)) { $('avviaBallo').disabled = false; alert('Non sono riuscito ad aprire il ballottaggio. Riprova.'); }
+  });
+}
+function bloccoRisultato(v, r, etichetta, ultimo) {
+  const vId = v.id;
   const arrivate = r.arrivate ?? r.votanti;
   const ballo = r.ballottaggio || [], fuori = r.fuori || [];
-  $('rTit').textContent = `${v.n}. ${v.titolo}`;
-  $('rSotto').textContent = v.scelte > 1 ? `Ognuno poteva scegliere fino a ${v.scelte} nomi` : 'Ognuno poteva scegliere un nome';
-  $('rNum').innerHTML = [
+  let h = etichetta ? `<h3 class="giro">${esc(etichetta)}</h3>` : '';
+  h += `<div class="piccolo">${v.candidati.length === 1 ? 'Si votava Sì o No' : v.scelte > 1 ? `Ognuno poteva scegliere fino a ${v.scelte} nomi` : 'Ognuno poteva scegliere un nome'}</div>`;
+  h += '<div class="riassunto">' + [
     [r.votanti, 'votanti'], ...(v.votanti ? [[arrivate, 'schede arrivate']] : []),
     [r.maggioranza, 'voti per la maggioranza'], [r.bianche, 'schede bianche'],
     ...(r.nulle ? [[r.nulle, 'schede non valide']] : [])
-  ].map(([n, t]) => `<div class="num"><b>${n}</b><span>${t}</span></div>`).join('');
+  ].map(([n, t]) => `<div class="num"><b>${n}</b><span>${t}</span></div>`).join('') + '</div>';
   let nota = '';
   if (!arrivate) nota = '<div class="nessuno">Nessuno ha votato.</div>';
   else if (!r.vinti.length && !ballo.length && !r.parita?.length) nota = `<div class="nessuno">${esc(notaNessuno(v, r))}</div>`;
@@ -799,30 +881,32 @@ async function mostraRisultato(vId) {
       <p>${r.vinti.length ? 'Per ' + (r.posti > 1 ? `i ${r.posti} posti rimasti` : 'il posto rimasto') : 'Nessuno ha raggiunto la maggioranza'} (servivano ${r.maggioranza} voti).</p>
       <p>Al ballottaggio: <b>${ballo.map(i => esc(v.candidati[i])).join(', ')}</b></p>
       ${fuori.length ? `<p>Fuori: ${fuori.map(i => esc(v.candidati[i])).join(', ')}</p>` : ''}
-      ${giaFatto ? '<p class="piccolo">Il ballottaggio è già stato fatto.</p>' : aperta ? '' : '<button class="bt arancio" id="avviaBallo" style="margin-top:12px">▶ Avvia il ballottaggio</button>'}</div>`;
+      ${giaFatto ? '<p class="piccolo">Il ballottaggio è stato fatto: vedi qui sotto.</p>' : aperta || !ultimo || sessione.chiusa ? '' : '<button class="bt arancio" id="avviaBallo" style="margin-top:12px">▶ Avvia il ballottaggio</button>'}</div>`;
   }
   if (v.votanti && arrivate > v.votanti) nota += `<div class="nessuno">Attenzione: sono arrivate ${arrivate} schede ma i votanti scritti sono ${v.votanti}.</div>`;
   if (r.votati !== undefined && arrivate > r.votati) nota += `<div class="nessuno">Attenzione: nell'urna ci sono ${arrivate} schede ma hanno votato ${r.votati} persone.</div>`;
-  $('rNota').innerHTML = nota;
-  $('avviaBallo')?.addEventListener('click', async () => {
-    const nomi = ballo.map(i => v.candidati[i]);
-    if (!confirm(`Aprire il ballottaggio tra:\n${nomi.join('\n')}?`)) return;
-    $('avviaBallo').disabled = true;
-    const titolo = 'Ballottaggio – ' + v.titolo.replace(/^Ballottaggio – /, '');
-    if (!await apriVotazione(titolo, nomi, r.posti, vId)) { $('avviaBallo').disabled = false; alert('Non sono riuscito ad aprire il ballottaggio. Riprova.'); }
-  });
+  h += nota;
   const righe = righeRisultato(v, r);
   const max = Math.max(1, ...righe.map(x => x.voti));
   const ETIC = { vinto: '<span class="vinto-etic">HA VINTO</span>', ballo: '<span class="ballo-etic">BALLOTTAGGIO</span>', fuori: '<span class="fuori-etic">FUORI</span>', '': '' };
-  $('rRighe').innerHTML = righe.map((x, k) => `<div class="ris ${x.esito}${x.no ? ' contro' : ''}">
+  h += righe.map((x, k) => `<div class="ris ${x.esito}${x.no ? ' contro' : ''}">
       <div class="pos">${x.si ? '✓' : x.no ? '✗' : k + 1}</div>
       <div><span class="n">${esc(x.nome)}</span>${ETIC[x.esito]}
         <div class="b"><i style="width:${x.voti / max * 100}%"></i></div></div>
       <div class="v"><b>${x.voti}</b><span>${x.perc}%</span></div></div>`).join('');
+  return `<div class="blocco">${h}</div>`;
 }
 
 $('nuova').onclick = () => { vistaRis = null; disegna(); $('vTit').focus(); };
 $('chiudiRis').onclick = () => { vistaRis = null; disegna(); };
+
+// Chiudi sessione: finito il raduno non si vota e non ci si registra più; resta tutto da vedere.
+$('btChiudiSess').onclick = async () => {
+  if (corrente()?.stato === 'aperta') { alert('C\'è una votazione in corso: prima premi «Fine votazione».'); return; }
+  if (!confirm('Chiudere tutta la sessione?\n\nNon si potrà più votare né registrarsi. Si potranno solo vedere i risultati e fare il rapporto PDF.\nQuesta operazione non si può annullare.')) return;
+  try { await updateDoc(doc(db, 'sessioni', S), { chiusa: true, chiusaIl: serverTimestamp() }); }
+  catch (e) { console.warn(e); alert('Non sono riuscito a chiudere la sessione. Riprova.'); }
+};
 $('qr').onclick = () => $('velo').classList.remove('nascosto');
 $('velo').onclick = () => $('velo').classList.add('nascosto');
 
