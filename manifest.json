@@ -1,5 +1,5 @@
 {
-  "name": "Elezioni",
+  "name": "Elezioni e Votazioni",
   "short_name": "Elezioni",
   "description": "Votazione segreta per chiese e assemblea dei delegati",
   "display": "standalone",
@@ -7,8 +7,22 @@
   "background_color": "#f4f1ea",
   "theme_color": "#0f1f4d",
   "icons": [
-    { "src": "icona-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icona-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icona-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+    {
+      "src": "icona-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icona-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icona-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "./index.html"
 }

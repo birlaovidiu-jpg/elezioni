@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Elezioni – Segretario</title>
+<title>Elezioni e Votazioni</title>
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=3">
+<link rel="stylesheet" href="stile.css?v=4">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -121,66 +121,148 @@
   .velo .qr-grande { width: min(82vh, 92vw); }
   .velo .qr-grande svg { width: 100%; height: auto; }
   .velo .codice-grande { font-size: 48px; }
+  /* ---------- Accesso ---------- */
+  .accesso { position: fixed; inset: 0; display: grid; place-items: center; padding: 20px; overflow: auto;
+    background: radial-gradient(1200px 700px at 20% 0%, #2a4fb0 0%, transparent 60%), linear-gradient(160deg, #0b1838 0%, #13306f 55%, #0f1f4d 100%); }
+  .accesso .carta { width: min(440px, 100%); background: #fff; border-radius: 26px; padding: 34px 30px 28px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.55); text-align: center; }
+  .accesso .logo-grande { width: 120px; height: auto; display: block; margin: 0 auto 14px; }
+  .accesso .denom { font-size: 12.5px; color: var(--grigio); font-weight: 600; letter-spacing: .2px; line-height: 1.35; }
+  .accesso .campo-nome { font-size: 15px; color: var(--blu-scuro); font-weight: 800; margin-top: 2px; }
+  .accesso h1 { font-size: 30px; margin: 16px 0 4px; color: var(--blu-scuro); letter-spacing: -.3px; }
+  .accesso .sotto-tit { color: var(--grigio); font-size: 14.5px; margin-bottom: 18px; }
+  .accesso .etichetta { text-align: left; }
+  .accesso .link-piccolo { margin-top: 16px; font-size: 13px; }
+  .link-piccolo button { border: 0; background: none; color: var(--blu); font-weight: 600; text-decoration: underline; padding: 0; }
+
+  /* ---------- Testata ---------- */
+  .testata .logo img { width: 30px; height: auto; }
+  .testata .chi-sono { font-size: 13px; opacity: .85; margin-right: 6px; text-align: right; line-height: 1.25; }
+  .testata .chi-sono b { display: block; font-size: 14px; opacity: 1; }
+  .testata .bt.attivo { background: rgba(255,255,255,.3); }
+  @media (max-width: 760px) { .testata { flex-wrap: wrap; } .testata .destra { width: 100%; flex-wrap: wrap; } .testata .chi-sono { display: none; } }
+
+  /* ---------- Home ---------- */
+  .home { grid-template-columns: minmax(320px, 440px) 1fr; }
+  @media (max-width: 900px) { .home { grid-template-columns: 1fr; } }
+  .tipi { grid-template-columns: 1fr 1fr; }
+  .tipo { transition: border-color .15s, background .15s, transform .1s; }
+  .tipo:active { transform: scale(.98); }
+  .anteprima-nome { margin-top: 16px; padding: 14px 16px; border-radius: 14px; background: linear-gradient(135deg, #0f1f4d, #1f3b8f); color: #fff; display: flex; gap: 12px; align-items: center; }
+  .anteprima-nome img { width: 34px; }
+  .anteprima-nome b { display: block; font-size: 17px; }
+  .anteprima-nome span { font-size: 13px; opacity: .8; }
+  .filtri { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .filtri button { border: 1.5px solid var(--linea); background: #fbfaf7; border-radius: 99px; padding: 7px 14px; font-size: 14px; font-weight: 600; }
+  .filtri button.attivo { background: var(--blu); border-color: var(--blu); color: #fff; }
+  .elenco-sess { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .sess { align-items: flex-start; flex-direction: column; gap: 6px; padding: 16px; border-radius: 16px; background: #fff; box-shadow: 0 1px 2px rgba(15,31,77,.05); transition: border-color .15s, box-shadow .15s, transform .1s; }
+  .sess:hover { box-shadow: 0 8px 22px -10px rgba(15,31,77,.35); transform: translateY(-1px); }
+  .sess .riga1 { display: flex; width: 100%; align-items: center; gap: 10px; }
+  .sess .riga1 .em { font-size: 22px; }
+  .sess .tipo-et { font-size: 12px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: var(--blu); }
+  .sess .cod { margin-left: auto; font-size: 13px; }
+  .sess b { font-size: 17px; color: var(--blu-scuro); }
+  .sess .di { font-size: 12.5px; color: var(--grigio); }
+  .sess .di i { font-style: normal; background: #eef1f9; color: var(--blu-scuro); border-radius: 99px; padding: 2px 8px; font-weight: 700; }
+  .vuoto { padding: 30px 10px; text-align: center; color: var(--grigio); }
+
+  /* ---------- Sessione ---------- */
+  .barra-sess { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
+  .barra-sess .titolo-sess { flex: 1; min-width: 240px; }
+  .barra-sess .titolo-sess b { display: block; font-size: 24px; color: var(--blu-scuro); }
+  .barra-sess .titolo-sess span { color: var(--grigio); font-size: 14px; }
+  .bt.bianco { background: #fff; color: var(--blu-scuro); border: 1.5px solid var(--linea); }
+  .bt.bianco:hover { border-color: var(--blu); }
+
+  /* ---------- Impostazioni ---------- */
+  .impost { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; align-items: start; }
+  .persona { display: grid; grid-template-columns: 42px 1fr; align-items: center; gap: 6px 12px; padding: 14px 0; border-bottom: 1px solid var(--linea); }
+  .persona .azioni { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px; }
+  .persona .ini { width: 42px; height: 42px; border-radius: 50%; background: var(--blu); color: #fff; display: grid; place-items: center; font-weight: 800; flex: none; }
+  .persona.spento .ini { background: #b9b3a6; }
+  .persona > div { min-width: 0; }
+  .persona b { display: block; }
+  .persona span { font-size: 13px; color: var(--grigio); }
+  .persona .bt { padding: 8px 12px; font-size: 13.5px; }
+  .ok { color: var(--verde); font-size: 15px; margin-top: 10px; min-height: 1em; font-weight: 600; }
 </style>
 </head>
 <body>
-<header class="testata">
-  <div class="logo">🗳️</div>
-  <div>
-    <h1 id="intestazione">Elezioni – Segretario</h1>
-    <div class="sotto" id="sottotitolo">Programma di votazione segreta</div>
+
+<!-- ACCESSO -->
+<section id="vAccesso" class="accesso nascosto">
+  <div class="carta">
+    <img class="logo-grande" src="logo.png" alt="">
+    <div class="denom" id="aDenom"></div>
+    <div class="campo-nome" id="aCampo"></div>
+    <h1>Elezioni e Votazioni</h1>
+    <div class="sotto-tit" id="aSotto">Entra con il tuo nome utente e la tua password</div>
+    <label class="etichetta" for="aUtente">Nome utente</label>
+    <input class="campo" id="aUtente" autocomplete="username" autocapitalize="none" spellcheck="false">
+    <label class="etichetta" for="aPass">Password</label>
+    <input class="campo" id="aPass" type="password" autocomplete="current-password">
+    <div id="aConfermaBox" class="nascosto">
+      <label class="etichetta" for="aPass2">Scrivi di nuovo la password</label>
+      <input class="campo" id="aPass2" type="password" autocomplete="new-password">
+    </div>
+    <button class="bt largo" id="aEntra" style="margin-top:18px">Entra</button>
+    <div class="errore" id="aErr"></div>
+    <div class="link-piccolo" id="aPrimo"><button type="button" id="aPrimoBt">Primo accesso del Direttore: scegli la password</button></div>
   </div>
-  <div class="destra"><button class="bt nascosto" id="tornaHome">← Sessioni</button></div>
+</section>
+
+<header class="testata nascosto" id="testata">
+  <div class="logo"><img src="logo-bianco.png" alt=""></div>
+  <div>
+    <h1 id="intestazione">Elezioni e Votazioni</h1>
+    <div class="sotto" id="sottotitolo"></div>
+  </div>
+  <div class="destra">
+    <div class="chi-sono" id="chiSono"></div>
+    <button class="bt" id="vaiArchivio">Archivio</button>
+    <button class="bt" id="vaiImpost">Impostazioni</button>
+    <button class="bt" id="esci">Esci</button>
+  </div>
 </header>
 
 <main>
   <section id="vCarica" class="scheda" style="text-align:center">Collegamento…</section>
 
-  <!-- HOME -->
+  <!-- ARCHIVIO -->
   <section id="vHome" class="home nascosto">
     <div class="scheda">
       <h2>Nuova sessione</h2>
-      <div class="piccolo">Una sessione per ogni assemblea o raduno. Chi vota inquadra il suo QR code.</div>
-      <div class="tipi">
-        <button class="tipo" data-tipo="assemblea" type="button"><span class="em">🏛️</span><b>Assemblea dei delegati</b></button>
-        <button class="tipo" data-tipo="chiesa" type="button"><span class="em">⛪</span><b>Raduno di chiesa</b></button>
-      </div>
-      <label class="etichetta" for="nChiesa" id="nChiesaEt">Nome della chiesa</label>
-      <input class="campo" id="nChiesa" placeholder="es. Casentino" autocapitalize="words">
+      <div class="piccolo">Chi vota inquadra il QR code della sessione, oppure scrive il suo codice.</div>
+      <div class="tipi" id="tipi"></div>
+      <label class="etichetta" for="nNome" id="nNomeEt">Nome della chiesa</label>
+      <input class="campo" id="nNome" autocapitalize="words">
       <label class="etichetta" for="nRaduno">Nome del raduno</label>
       <input class="campo" id="nRaduno" placeholder="es. Elezione dei responsabili 2027" autocapitalize="sentences">
       <label class="etichetta" for="nData">Data</label>
       <input class="campo" id="nData" type="date">
       <label class="etichetta" for="nVotanti">Numero dei votanti</label>
       <input class="campo" id="nVotanti" type="number" min="1" inputmode="numeric" placeholder="es. 40">
-      <div class="piccolo" style="margin-top:4px">Vale per tutte le votazioni del raduno: per vincere servono più della metà di questo numero. Se lo lasci vuoto, si contano le schede arrivate. Si può cambiare anche dopo.</div>
+      <div class="piccolo" style="margin-top:4px">Vale per tutte le votazioni del raduno: per vincere servono più della metà di questo numero. Se lo lasci vuoto, si contano le schede arrivate.</div>
+      <div class="anteprima-nome"><img src="logo-bianco.png" alt=""><div><b id="nAnteprima">Votazione</b><span>Così lo vedranno sul telefono</span></div></div>
       <button class="bt largo" id="crea" style="margin-top:16px">Crea la sessione</button>
       <div class="errore" id="creaErr"></div>
     </div>
     <div class="scheda">
       <h2>Archivio</h2>
-      <div class="piccolo">Tutti i raduni, dal più recente.</div>
+      <div class="piccolo" id="archivioSotto">I tuoi raduni, dal più recente.</div>
+      <div class="filtri nascosto" id="filtri"></div>
       <div class="elenco-sess" id="mie"></div>
-      <div class="chiave" style="margin-top:18px">Codice del tuo archivio: <code id="codA"></code><br>Conservalo: con questo codice ritrovi tutto l'archivio su un altro computer.</div>
-    </div>
-    <div class="scheda">
-      <h2>Da un altro computer</h2>
-      <label class="etichetta" for="aA">Codice dell'archivio</label>
-      <input class="campo" id="aA" style="text-transform:uppercase;letter-spacing:3px" autocomplete="off" placeholder="XXXX-XXXX-XXXX">
-      <button class="bt largo chiaro" id="apriA" style="margin-top:12px">Apri l'archivio</button>
-      <div class="errore" id="apriAErr"></div>
-      <div class="piccolo" style="margin-top:18px">Oppure una sola sessione: serve il codice della sessione e il codice del segretario.</div>
-      <label class="etichetta" for="aS">Codice della sessione</label>
-      <input class="campo" id="aS" style="text-transform:uppercase;letter-spacing:3px" maxlength="6" autocomplete="off">
-      <label class="etichetta" for="aK">Codice del segretario</label>
-      <input class="campo" id="aK" style="text-transform:uppercase;letter-spacing:3px" autocomplete="off">
-      <button class="bt largo chiaro" id="apri" style="margin-top:16px">Apri</button>
-      <div class="errore" id="apriErr"></div>
     </div>
   </section>
 
   <!-- SESSIONE -->
-  <section id="vSess" class="griglia nascosto">
+  <section id="vSess" class="nascosto">
+    <div class="barra-sess">
+      <div class="titolo-sess"><b id="sTitolo"></b><span id="sSotto"></span></div>
+      <button class="bt bianco" id="btProiezione">📺 Proiezione</button>
+      <button class="bt bianco" id="btRapporto">📄 Rapporto PDF</button>
+    </div>
+    <div class="griglia">
     <aside class="scheda">
       <h2 style="text-align:center">Inquadra per votare</h2>
       <div class="qr" id="qr" title="Ingrandisci"></div>
@@ -193,7 +275,6 @@
       </div>
       <div class="contatore"><b id="nIscritti">0</b><span class="piccolo">registrati</span></div>
       <div class="iscritti" id="iscritti"></div>
-      <div class="chiave">Codice del segretario: <code id="codK"></code><br>Serve per aprire questa sessione da un altro computer. Non darlo a nessuno.</div>
     </aside>
 
     <div style="display:grid;gap:20px">
@@ -249,113 +330,200 @@
         <div class="storico" id="storico"></div>
       </div>
     </div>
+    </div>
+  </section>
+
+  <!-- IMPOSTAZIONI -->
+  <section id="vImpost" class="impost nascosto">
+    <div class="scheda nascosto" id="pPersone">
+      <h2>Persone che lavorano con il programma</h2>
+      <div class="piccolo">Ognuno vede e lavora solo le sue sessioni. Tu, come Direttore, vedi tutto.</div>
+      <div id="persone" style="margin-top:8px"></div>
+    </div>
+    <div class="scheda nascosto" id="pAggiungi">
+      <h2>Aggiungi una persona</h2>
+      <div class="piccolo">Scegli tu il nome utente e la password, poi dalli a questa persona.</div>
+      <label class="etichetta" for="pNome">Nome e cognome</label>
+      <input class="campo" id="pNome" autocapitalize="words" autocomplete="off">
+      <label class="etichetta" for="pUtente">Nome utente</label>
+      <input class="campo" id="pUtente" autocapitalize="none" spellcheck="false" autocomplete="off" placeholder="es. mario.rossi">
+      <label class="etichetta" for="pPass">Password</label>
+      <input class="campo" id="pPass" type="text" autocomplete="off" spellcheck="false" placeholder="almeno 6 caratteri">
+      <button class="bt largo" id="pAggiungiBt" style="margin-top:16px">Aggiungi</button>
+      <div class="errore" id="pErr"></div>
+      <div class="ok" id="pOk"></div>
+    </div>
+    <div class="scheda">
+      <h2>La mia password</h2>
+      <label class="etichetta" for="mVecchia">Password di adesso</label>
+      <input class="campo" id="mVecchia" type="password" autocomplete="current-password">
+      <label class="etichetta" for="mNuova">Password nuova</label>
+      <input class="campo" id="mNuova" type="password" autocomplete="new-password">
+      <label class="etichetta" for="mNuova2">Scrivi di nuovo la password nuova</label>
+      <input class="campo" id="mNuova2" type="password" autocomplete="new-password">
+      <button class="bt largo chiaro" id="mCambia" style="margin-top:16px">Cambia la password</button>
+      <div class="errore" id="mErr"></div>
+      <div class="ok" id="mOk"></div>
+    </div>
   </section>
 </main>
 
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=3';
-import { db, COLLEGATO, entra, codice, esc, ruoloCompleto, conta,
-         doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=3';
+import qrcode from './qrcode.mjs?v=4';
+import { creaRapporto } from './rapporto.js?v=4';
+import { db, COLLEGATO, CHIESA, TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella,
+         chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
+         doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
+  from './comune.js?v=4';
 
 const $ = id => document.getElementById(id);
-function mostra(v) { ['vCarica', 'vHome', 'vSess'].forEach(x => $(x).classList.toggle('nascosto', x !== v)); }
-
-let uid, S, sessione, ascoltatori = [];
-let votazioni = [], iscritti = [], votati = new Set(), fermaVotati = null, votatiDi = null;
-let vistaRis = null;          // votazione chiusa di cui si vede la scheda dei risultati
-
-// ---------- Archivio: salvato su Firebase con il codice dell'archivio, e copiato su questo computer ----------
-const leggi = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
-const scrivi = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
-let A = leggi('archivio', null);
-if (!A) { A = codice(12); scrivi('archivio', A); }
-const conTrattini = a => a.replace(/(.{4})(?=.)/g, '$1-');
-let archivio = leggi('archivioCopia', []);
-
-// Le sessioni create prima dell'archivio (vecchio elenco «Le mie sessioni») entrano nell'archivio.
-const vecchie = leggi('mieSessioni', []);
-for (const x of vecchie) if (!archivio.some(y => y.s === x.s)) archivio.push({ ...x, raduno: '', data: '' });
-
-function ordina(l) {
-  return l.sort((a, b) => (b.data || '').localeCompare(a.data || '') || (b.creata || 0) - (a.creata || 0));
+const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
+function mostra(v) {
+  VISTE.forEach(x => $(x).classList.toggle('nascosto', x !== v));
+  $('testata').classList.toggle('nascosto', v === 'vAccesso' || v === 'vCarica');
+  $('vaiArchivio').classList.toggle('attivo', v === 'vHome');
+  $('vaiImpost').classList.toggle('attivo', v === 'vImpost');
+  scrollTo(0, 0);
 }
-function dataBella(d) {
-  if (!d) return '';
-  const [y, m, g] = d.split('-').map(Number);
-  return new Date(y, m - 1, g).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+
+let io = null;                 // chi è entrato: { uid, utente, nome, direttore }
+let S, sessione, ascoltatori = [];
+let votazioni = [], iscritti = [], votati = new Set(), fermaVotati = null, votatiDi = null;
+let vistaRis = null;           // votazione chiusa di cui si vede la scheda dei risultati
+let sessioni = [], persone = [], filtro = 'tutti', fermaArchivio = null, fermaPersone = null;
+
+// ---------- Accesso ----------
+$('aDenom').textContent = CHIESA.denominazione;
+$('aCampo').textContent = CHIESA.campo;
+let primoAccesso = false;
+function modoAccesso(primo) {
+  primoAccesso = primo;
+  $('aConfermaBox').classList.toggle('nascosto', !primo);
+  $('aSotto').textContent = primo ? 'Primo accesso del Direttore: scegli la tua password' : 'Entra con il tuo nome utente e la tua password';
+  $('aEntra').textContent = primo ? 'Crea la password ed entra' : 'Entra';
+  $('aPrimoBt').textContent = primo ? '← Torna all\'accesso' : 'Primo accesso del Direttore: scegli la password';
+  $('aPass').autocomplete = primo ? 'new-password' : 'current-password';
+  if (primo) $('aUtente').value = DIRETTORE;
+  $('aErr').textContent = '';
+}
+$('aPrimoBt').onclick = () => modoAccesso(!primoAccesso);
+['aUtente', 'aPass', 'aPass2'].forEach(id => $(id).onkeydown = e => { if (e.key === 'Enter') $('aEntra').click(); });
+$('aEntra').onclick = async () => {
+  const u = pulisciUtente($('aUtente').value), p = $('aPass').value;
+  $('aErr').textContent = '';
+  if (!u || !p) { $('aErr').textContent = 'Scrivi nome utente e password.'; return; }
+  $('aEntra').disabled = true;
+  try {
+    if (primoAccesso) {
+      if (u !== DIRETTORE) throw { code: 'solo-direttore' };
+      if (p !== $('aPass2').value) throw { code: 'diverse' };
+      await creaDirettore(p);
+    } else await accedi(u, p);
+    $('aPass').value = $('aPass2').value = '';
+  } catch (e) {
+    $('aErr').textContent = e.code === 'diverse' ? 'Le due password non sono uguali.'
+      : e.code === 'solo-direttore' ? 'Il primo accesso serve solo al Direttore.'
+      : primoAccesso && /email-already-in-use/.test(e.code) ? 'La password del Direttore è già stata scelta: entra normalmente.'
+      : messaggioErrore(e);
+  }
+  $('aEntra').disabled = false;
+};
+$('esci').onclick = async () => { chiudiAscolto(); fermaArchivio?.(); fermaPersone?.(); await esci(); };
+
+quandoCambiaAccesso(async u => {
+  io = await chiSono(u);
+  if (u && !u.isAnonymous && !io) {
+    // Account disattivato o non riconosciuto.
+    await esci(); $('aErr').textContent = 'Questo account non è attivo. Chiedi al Direttore.'; return;
+  }
+  if (!io) { modoAccesso(false); mostra('vAccesso'); setTimeout(() => $('aUtente').focus(), 50); return; }
+  $('chiSono').innerHTML = `<b>${esc(io.nome)}</b>${io.direttore ? 'Direttore' : 'Segretario'}`;
+  $('pPersone').classList.toggle('nascosto', !io.direttore);
+  $('pAggiungi').classList.toggle('nascosto', !io.direttore);
+  avviaArchivio();
+  if (io.direttore) avviaPersone();
+  vaiArchivio();
+});
+
+// ---------- Testata e navigazione ----------
+function intestazione(titolo, sotto) {
+  $('intestazione').textContent = titolo || CHIESA.programma;
+  $('sottotitolo').textContent = sotto ?? `${CHIESA.campo} · ${io?.direttore ? 'Direttore' : 'Segretario'}`;
+}
+function vaiArchivio() { chiudiAscolto(); S = null; sessione = null; intestazione(); disegnaArchivio(); mostra('vHome'); }
+$('vaiArchivio').onclick = vaiArchivio;
+$('vaiImpost').onclick = () => { chiudiAscolto(); S = null; intestazione('Impostazioni'); disegnaPersone(); mostra('vImpost'); };
+
+// ---------- Archivio ----------
+function avviaArchivio() {
+  fermaArchivio?.();
+  const q = io.direttore ? collection(db, 'sessioni') : query(collection(db, 'sessioni'), where('owner', '==', io.uid));
+  fermaArchivio = onSnapshot(q, snap => {
+    sessioni = snap.docs.map(d => ({ s: d.id, ...d.data() }));
+    disegnaArchivio();
+  }, e => console.warn(e));
+}
+function nomeDi(uid) {
+  if (!uid) return 'senza nome';
+  if (uid === io.uid) return io.nome;
+  return persone.find(p => p.uid === uid)?.nome || 'altro';
 }
 function disegnaArchivio() {
-  $('codA').textContent = conTrattini(A);
-  const l = ordina([...archivio]);
+  if (!io) return;
+  // Filtri per persona: solo il Direttore.
+  $('filtri').classList.toggle('nascosto', !io.direttore);
+  if (io.direttore) {
+    const chi = [...new Set(sessioni.map(x => x.owner || ''))];
+    const voci = [['tutti', 'Tutti'], [io.uid, io.nome], ...persone.filter(p => p.uid !== io.uid).map(p => [p.uid, p.nome]),
+      ...(chi.includes('') ? [['', 'Sessioni vecchie']] : [])];
+    $('filtri').innerHTML = voci.map(([k, t]) => `<button data-k="${esc(k)}" class="${filtro === k ? 'attivo' : ''}">${esc(t)}</button>`).join('');
+    $('filtri').querySelectorAll('button').forEach(b => b.onclick = () => { filtro = b.dataset.k; disegnaArchivio(); });
+    $('archivioSotto').textContent = 'I raduni di tutti, dal più recente. Scegli una persona per vedere solo i suoi.';
+  }
+  let l = sessioni.filter(x => !io.direttore || filtro === 'tutti' || (x.owner || '') === filtro);
+  l.sort((a, b) => (b.data || '').localeCompare(a.data || '') || (b.creata?.seconds || 0) - (a.creata?.seconds || 0));
   $('mie').innerHTML = l.length ? l.map(x => `<button class="sess" data-s="${esc(x.s)}">
-      <span class="em">${x.tipo === 'assemblea' ? '🏛️' : '⛪'}</span>
-      <span><b>${esc(x.raduno || x.titolo)}</b><small>${esc([x.raduno ? x.titolo : '', dataBella(x.data)].filter(Boolean).join(' · '))}</small></span>
-      <span class="cod">${esc(x.s)}</span></button>`).join('')
-    : '<div class="piccolo">Nessun raduno ancora.</div>';
+      <span class="riga1"><span class="em">${TIPI[x.tipo]?.em || '🗳️'}</span><span class="tipo-et">${esc(TIPI[x.tipo]?.nome || '')}</span><span class="cod">${esc(x.s)}</span></span>
+      <b>${esc(x.raduno || nomeVotazione(x))}</b>
+      <small>${esc([x.raduno ? nomeVotazione(x) : '', dataBella(x.data)].filter(Boolean).join(' · '))}</small>
+      ${io.direttore ? `<span class="di">di <i>${esc(nomeDi(x.owner))}</i></span>` : ''}</button>`).join('')
+    : '<div class="vuoto">Nessun raduno ancora. Creane uno qui accanto.</div>';
   $('mie').querySelectorAll('.sess').forEach(b => b.onclick = () => apriSessione(b.dataset.s));
 }
-async function caricaArchivio() {
-  const snap = await getDocs(collection(db, 'archivi', A, 'sessioni'));
-  const online = snap.docs.map(d => d.data());
-  // Quello che c'è solo su questo computer va anche online.
-  for (const x of archivio) if (!online.some(y => y.s === x.s)) { online.push(x); salvaInArchivio(x); }
-  archivio = online;
-  scrivi('archivioCopia', archivio);
-  disegnaArchivio();
-}
-function salvaInArchivio(x) {
-  const pulita = { s: x.s, titolo: x.titolo || '', tipo: x.tipo || 'chiesa', raduno: x.raduno || '', data: x.data || '', chiave: x.chiave || '', creata: x.creata || Date.now() };
-  archivio = archivio.filter(y => y.s !== x.s).concat(pulita);
-  scrivi('archivioCopia', archivio);
-  return setDoc(doc(db, 'archivi', A, 'sessioni', x.s), pulita).catch(e => console.warn(e));
-}
-
-$('apriA').onclick = async () => {
-  const a = $('aA').value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-  $('apriAErr').textContent = '';
-  if (a.length !== 12) { $('apriAErr').textContent = 'Il codice dell\'archivio ha 12 lettere e numeri.'; return; }
-  const snap = await getDocs(collection(db, 'archivi', a, 'sessioni')).catch(() => null);
-  if (!snap || snap.empty) { $('apriAErr').textContent = 'Archivio non trovato.'; return; }
-  A = a; scrivi('archivio', A);
-  archivio = snap.docs.map(d => d.data()); scrivi('archivioCopia', archivio);
-  $('aA').value = '';
-  disegnaArchivio();
-};
 
 // ---------- Nuova sessione ----------
 let tipo = 'chiesa';
+$('tipi').innerHTML = Object.entries(TIPI).map(([k, t]) => `<button class="tipo" data-tipo="${k}" type="button"><span class="em">${t.em}</span><b>${t.nome}</b></button>`).join('');
 function aggiornaTipo() {
   document.querySelectorAll('.tipo').forEach(b => b.classList.toggle('scelto', b.dataset.tipo === tipo));
-  $('nChiesaEt').textContent = tipo === 'chiesa' ? 'Nome della chiesa' : 'Nome dell\'assemblea';
-  $('nChiesa').placeholder = tipo === 'chiesa' ? 'es. Casentino' : 'es. Assemblea dei delegati 2026';
+  $('nNomeEt').textContent = TIPI[tipo].etichetta;
+  $('nNome').placeholder = TIPI[tipo].esempio;
+  anteprima();
 }
+function anteprima() { $('nAnteprima').textContent = nomeVotazione({ tipo, nome: $('nNome').value.trim() || '…' }); }
 document.querySelectorAll('.tipo').forEach(b => b.onclick = () => { tipo = b.dataset.tipo; aggiornaTipo(); });
+$('nNome').oninput = anteprima;
 const oggi = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+aggiornaTipo(); $('nData').value = oggi();
 
 $('crea').onclick = async () => {
   const pulisci = t => t.trim().replace(/\s+/g, ' ');
-  const nome = pulisci($('nChiesa').value), raduno = pulisci($('nRaduno').value), data = $('nData').value || oggi();
+  const nome = pulisci($('nNome').value), raduno = pulisci($('nRaduno').value), data = $('nData').value || oggi();
   const votanti = $('nVotanti').value.trim() ? parseInt($('nVotanti').value, 10) : null;
-  if ($('nVotanti').value.trim() && !(votanti > 0)) { $('creaErr').textContent = 'Il numero dei votanti non è giusto.'; return; }
-  if (!nome) { $('creaErr').textContent = tipo === 'chiesa' ? 'Scrivi il nome della chiesa.' : 'Scrivi il nome dell\'assemblea.'; return; }
+  if (!nome) { $('creaErr').textContent = 'Scrivi: ' + TIPI[tipo].etichetta.toLowerCase() + '.'; return; }
   if (!raduno) { $('creaErr').textContent = 'Scrivi il nome del raduno.'; return; }
+  if ($('nVotanti').value.trim() && !(votanti > 0)) { $('creaErr').textContent = 'Il numero dei votanti non è giusto.'; return; }
   $('crea').disabled = true; $('creaErr').textContent = '';
-  if (!uid) uid = await entra();
-  const titolo = tipo === 'chiesa' ? 'Chiesa ' + nome : nome;
+  const titolo = nomeVotazione({ tipo, nome }).replace(/^Votazione /, '');
   for (let tentativo = 0; tentativo < 4; tentativo++) {
-    const s = codice(6), chiave = codice(10);
-    const b = writeBatch(db);
-    b.set(doc(db, 'chiavi', s), { chiave });
-    b.set(doc(db, 'sessioni', s, 'admin', uid), { chiave });
-    b.set(doc(db, 'sessioni', s), { tipo, titolo, chiesa: tipo === 'chiesa' ? nome : '', raduno, data, votanti, creata: serverTimestamp(), corrente: null });
+    const s = codice(6);
+    if ((await getDoc(doc(db, 'sessioni', s)).catch(() => null))?.exists()) continue;
     try {
-      await b.commit();
-      segnaAdmin(s);
-      salvaInArchivio({ s, titolo, tipo, raduno, data, chiave });
-      $('nChiesa').value = $('nRaduno').value = $('nVotanti').value = ''; $('nData').value = oggi();
+      await setDoc(doc(db, 'sessioni', s), { tipo, nome, titolo, chiesa: tipo === 'chiesa' ? nome : '', raduno, data, votanti,
+        owner: io.uid, ownerNome: io.nome, creata: serverTimestamp(), corrente: null });
+      $('nNome').value = $('nRaduno').value = $('nVotanti').value = ''; $('nData').value = oggi(); anteprima();
       $('crea').disabled = false;
       apriSessione(s);
       return;
@@ -365,49 +533,22 @@ $('crea').onclick = async () => {
   $('creaErr').textContent = 'Non sono riuscito a creare la sessione. Controlla Internet e riprova.';
 };
 
-// ---------- Diventare segretario di una sessione su questo computer ----------
-const segnaAdmin = s => scrivi('admin:' + uid + ':' + s, 1);
-async function assicuraAdmin(s, chiave) {
-  if (leggi('admin:' + uid + ':' + s, 0)) return true;
-  const gia = await getDoc(doc(db, 'sessioni', s, 'admin', uid));
-  if (!gia.exists()) {
-    if (!chiave) return false;
-    await setDoc(doc(db, 'sessioni', s, 'admin', uid), { chiave });
-  }
-  segnaAdmin(s);
-  return true;
-}
-$('apri').onclick = async () => {
-  const s = $('aS').value.trim().toUpperCase(), chiave = $('aK').value.trim().toUpperCase();
-  $('apriErr').textContent = '';
-  if (!s || !chiave) { $('apriErr').textContent = 'Scrivi i due codici.'; return; }
-  try {
-    await assicuraAdmin(s, chiave);
-    const ds = await getDoc(doc(db, 'sessioni', s));
-    const d = ds.data();
-    salvaInArchivio({ s, titolo: d.titolo, tipo: d.tipo, raduno: d.raduno || '', data: d.data || '', chiave });
-    $('aS').value = $('aK').value = '';
-    apriSessione(s);
-  } catch (e) { $('apriErr').textContent = 'Codici sbagliati.'; }
-};
-
 // ---------- Sessione aperta ----------
 function chiudiAscolto() { ascoltatori.forEach(f => f()); ascoltatori = []; fermaVotati?.(); fermaVotati = null; votatiDi = null; }
 
-function intestazione(x) {
-  $('intestazione').textContent = x.raduno || x.titolo;
-  $('sottotitolo').textContent = [x.raduno ? x.titolo : (x.tipo === 'assemblea' ? 'Assemblea dei delegati' : 'Raduno di chiesa'), dataBella(x.data), 'Segretario'].filter(Boolean).join(' · ');
+function titoliSessione(x) {
+  const t = x.raduno || nomeVotazione(x);
+  const sotto = [x.raduno ? nomeVotazione(x) : '', dataBella(x.data), io.direttore && x.owner !== io.uid ? 'di ' + nomeDi(x.owner) : ''].filter(Boolean).join(' · ');
+  intestazione(t, sotto);
+  $('sTitolo').textContent = t; $('sSotto').textContent = sotto;
 }
 
 async function apriSessione(s) {
   chiudiAscolto();
-  if (!uid) uid = await entra();
   S = s; vistaRis = null; votazioni = []; iscritti = []; votati = new Set(); sessione = null;
-  const io = archivio.find(x => x.s === S) || {};
+  const nota = sessioni.find(x => x.s === S) || { s };
   // La pagina si apre subito con quello che so già; i dati arrivano mentre la si guarda.
-  intestazione({ titolo: io.titolo || S, raduno: io.raduno, data: io.data, tipo: io.tipo });
-  $('tornaHome').classList.remove('nascosto');
-  $('codK').textContent = io.chiave || '—';
+  titoliSessione(nota);
   const link = new URL('index.html?s=' + S, location.href).href;
   const q = qrcode(0, 'M'); q.addData(link); q.make();
   const svg = q.createSvgTag({ cellSize: 8, margin: 16, scalable: true });
@@ -417,10 +558,6 @@ async function apriSessione(s) {
   $('nIscritti').textContent = '…'; $('iscritti').innerHTML = '';
   ['pNuova', 'pCorso', 'pRis', 'pStorico'].forEach(x => $(x).classList.add('nascosto'));
   mostra('vSess');
-
-  try { if (!await assicuraAdmin(S, io.chiave)) throw 0; }
-  catch (e) { alert('Su questo computer non sei segretario di questa sessione. Aprila con il codice del segretario.'); $('tornaHome').click(); return; }
-  if (S !== s) return;
 
   ascoltatori.push(onSnapshot(collection(db, 'sessioni', S, 'iscritti'), snap => {
     iscritti = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.cognome + a.nome).localeCompare(b.cognome + b.nome, 'it'));
@@ -433,22 +570,19 @@ async function apriSessione(s) {
       catch (e) { alert('Non sono riuscito a toglierlo. Riprova.'); }
     });
     stato();
-  }));
+  }, e => console.warn(e)));
   ascoltatori.push(onSnapshot(doc(db, 'sessioni', S), snap => {
     sessione = snap.data();
-    intestazione(sessione);
+    titoliSessione({ s: S, ...sessione });
     if (document.activeElement !== $('sVotanti')) $('sVotanti').value = sessione.votanti || '';
     notaVotanti();
     stato();
-    // L'archivio si tiene aggiornato con i dati veri della sessione.
-    if (!io.titolo || io.raduno !== (sessione.raduno || '') || io.data !== (sessione.data || ''))
-      salvaInArchivio({ ...io, s: S, titolo: sessione.titolo, tipo: sessione.tipo, raduno: sessione.raduno || '', data: sessione.data || '' });
     disegna();
-  }));
+  }, e => { console.warn(e); alert('Non puoi aprire questa sessione.'); vaiArchivio(); }));
   ascoltatori.push(onSnapshot(query(collection(db, 'sessioni', S, 'votazioni'), orderBy('n')), snap => {
     votazioni = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     disegna();
-  }));
+  }, e => console.warn(e)));
 }
 
 function notaVotanti() {
@@ -526,6 +660,7 @@ function stato() {
 let nScelte = 1;
 function nuovaVotazione() {
   if (!$('righe').children.length) { aggiungiRiga(); aggiungiRiga(); }
+  $('vTit').placeholder = sessione?.tipo === 'comitato' || sessione?.tipo === 'consiglio' ? 'es. Presidente, oppure Approvazione del bilancio' : 'es. Anziano di chiesa';
 }
 function aggiungiRiga(valore = '') {
   const r = document.createElement('div');
@@ -592,22 +727,22 @@ $('fine').onclick = async () => {
 };
 
 const risultatiLetti = {};
+async function leggiRisultato(v) {
+  if (risultatiLetti[S + v.id]) return risultatiLetti[S + v.id];
+  const dr = await getDoc(doc(db, 'sessioni', S, 'risultati', v.id));
+  let r = dr.data();
+  if (!r) {
+    // Votazione chiusa ma il conteggio non era stato salvato: lo rifaccio adesso.
+    const urna = await getDoc(doc(db, 'sessioni', S, 'urne', v.id));
+    r = conta(v, Object.values(urna.data().schede || {}));
+    await setDoc(doc(db, 'sessioni', S, 'risultati', v.id), r).catch(() => {});
+  }
+  return risultatiLetti[S + v.id] = r;
+}
 async function mostraRisultato(vId) {
   const v = votazioni.find(x => x.id === vId);
   if (!v) return;
-  let r = risultatiLetti[vId];
-  if (!r) {
-    const dr = await getDoc(doc(db, 'sessioni', S, 'risultati', vId));
-    if (vistaRis !== vId) return;
-    r = dr.data();
-    if (!r) {
-      // Votazione chiusa ma il conteggio non era stato salvato: lo rifaccio adesso.
-      const urna = await getDoc(doc(db, 'sessioni', S, 'urne', vId));
-      r = conta(v, Object.values(urna.data().schede || {}));
-      await setDoc(doc(db, 'sessioni', S, 'risultati', vId), r).catch(() => {});
-    }
-    risultatiLetti[vId] = r;
-  }
+  const r = await leggiRisultato(v);
   if (vistaRis !== vId) return;
   const arrivate = r.arrivate ?? r.votanti;
   const ballo = r.ballottaggio || [], fuori = r.fuori || [];
@@ -657,26 +792,74 @@ async function mostraRisultato(vId) {
 
 $('nuova').onclick = () => { vistaRis = null; disegna(); $('vTit').focus(); };
 $('chiudiRis').onclick = () => { vistaRis = null; disegna(); };
-$('tornaHome').onclick = () => {
-  chiudiAscolto(); S = null; sessione = null;
-  $('tornaHome').classList.add('nascosto');
-  $('intestazione').textContent = 'Elezioni – Segretario';
-  $('sottotitolo').textContent = 'Programma di votazione segreta';
-  disegnaArchivio(); mostra('vHome');
-  caricaArchivio().catch(e => console.warn(e));
-};
 $('qr').onclick = () => $('velo').classList.remove('nascosto');
 $('velo').onclick = () => $('velo').classList.add('nascosto');
 
-// ---------- Avvio: la pagina compare subito, il collegamento si fa intanto ----------
-(async () => {
-  if (!COLLEGATO) { $('vCarica').textContent = 'Il programma non è ancora collegato a Firebase: scrivi i dati nel file config.js.'; return; }
-  aggiornaTipo(); $('nData').value = oggi();
-  disegnaArchivio(); mostra('vHome');
-  try { uid = await entra(); }
-  catch (e) { mostra('vCarica'); $('vCarica').textContent = 'Non riesco a collegarmi. Controlla Internet e ricarica la pagina.'; return; }
-  caricaArchivio().catch(e => console.warn(e));
-})();
+// ---------- Proiezione e rapporto ----------
+$('btProiezione').onclick = () => {
+  window.open('proiezione.html?s=' + S, 'proiezione-' + S, 'popup,width=1280,height=720');
+};
+$('btRapporto').onclick = async () => {
+  const b = $('btRapporto'); b.disabled = true; b.textContent = '⏳ Preparo il PDF…';
+  try {
+    const chiuse = votazioni.filter(v => v.stato === 'chiusa');
+    const risultati = {};
+    for (const v of chiuse) risultati[v.id] = await leggiRisultato(v);
+    await creaRapporto({ codice: S, sessione, iscritti, votazioni: chiuse, risultati,
+      segretario: sessione.ownerNome || (sessione.owner === io.uid ? io.nome : nomeDi(sessione.owner)) });
+  } catch (e) { console.warn(e); alert('Non sono riuscito a preparare il PDF. Riprova.'); }
+  b.disabled = false; b.textContent = '📄 Rapporto PDF';
+};
+
+// ---------- Impostazioni: persone (solo il Direttore) ----------
+function avviaPersone() {
+  fermaPersone?.();
+  fermaPersone = onSnapshot(collection(db, 'utenti'), snap => {
+    persone = snap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'it'));
+    disegnaPersone(); disegnaArchivio();
+  }, e => console.warn(e));
+}
+function disegnaPersone() {
+  if (!io?.direttore) return;
+  const quante = uid => sessioni.filter(x => x.owner === uid).length;
+  $('persone').innerHTML = persone.length ? persone.map(p => `<div class="persona ${p.attivo ? '' : 'spento'}">
+      <div class="ini">${esc(iniziali(p.nome || p.utente))}</div>
+      <div><b>${esc(p.nome)}</b><span>nome utente: <b style="display:inline">${esc(p.utente)}</b> · ${quante(p.uid)} sessioni${p.attivo ? '' : ' · <b style="display:inline;color:var(--rosso)">disattivato</b>'}</span></div>
+      <div class="azioni"><button class="bt bianco" data-vedi="${p.uid}">Vedi le sue sessioni</button>
+      <button class="bt ${p.attivo ? 'chiaro' : 'verde'}" data-attiva="${p.uid}">${p.attivo ? 'Disattiva' : 'Riattiva'}</button></div></div>`).join('')
+    : '<div class="vuoto">Nessuna persona ancora. Aggiungila qui accanto.</div>';
+  $('persone').querySelectorAll('[data-vedi]').forEach(b => b.onclick = () => { filtro = b.dataset.vedi; vaiArchivio(); });
+  $('persone').querySelectorAll('[data-attiva]').forEach(b => b.onclick = async () => {
+    const p = persone.find(x => x.uid === b.dataset.attiva);
+    if (p.attivo && !confirm(`Disattivare ${p.nome}? Non potrà più entrare finché non lo riattivi.`)) return;
+    await updateDoc(doc(db, 'utenti', p.uid), { attivo: !p.attivo }).catch(() => alert('Non sono riuscito. Riprova.'));
+  });
+}
+$('pAggiungiBt').onclick = async () => {
+  const nome = $('pNome').value.trim().replace(/\s+/g, ' '), utente = pulisciUtente($('pUtente').value), pass = $('pPass').value;
+  $('pErr').textContent = $('pOk').textContent = '';
+  if (!nome || !utente || !pass) { $('pErr').textContent = 'Scrivi nome, nome utente e password.'; return; }
+  if (utente === DIRETTORE) { $('pErr').textContent = 'Questo nome utente è del Direttore.'; return; }
+  if (pass.length < 6) { $('pErr').textContent = 'La password deve avere almeno 6 caratteri.'; return; }
+  $('pAggiungiBt').disabled = true;
+  try {
+    const uid = await creaAccount(utente, pass);
+    await setDoc(doc(db, 'utenti', uid), { nome, utente, attivo: true, creato: serverTimestamp() });
+    $('pNome').value = $('pUtente').value = $('pPass').value = '';
+    $('pOk').textContent = `Fatto. ${nome} entra da questo stesso indirizzo con il nome utente «${utente}».`;
+  } catch (e) { $('pErr').textContent = messaggioErrore(e); }
+  $('pAggiungiBt').disabled = false;
+};
+$('mCambia').onclick = async () => {
+  $('mErr').textContent = $('mOk').textContent = '';
+  const v = $('mVecchia').value, n = $('mNuova').value;
+  if (!v || !n) { $('mErr').textContent = 'Scrivi la password di adesso e quella nuova.'; return; }
+  if (n !== $('mNuova2').value) { $('mErr').textContent = 'Le due password nuove non sono uguali.'; return; }
+  try { await cambiaPassword(v, n); $('mVecchia').value = $('mNuova').value = $('mNuova2').value = ''; $('mOk').textContent = 'Password cambiata.'; }
+  catch (e) { $('mErr').textContent = messaggioErrore(e); }
+};
+
+if (!COLLEGATO) $('vCarica').textContent = 'Il programma non è ancora collegato a Firebase: scrivi i dati nel file config.js.';
 </script>
 </body>
 </html>

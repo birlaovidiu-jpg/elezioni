@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proiezione – Elezioni e Votazioni</title>
+<meta name="theme-color" content="#0b1838">
+<link rel="icon" href="icona-192.png">
+<style>
+  :root { --sfondo1: #0b1838; --sfondo2: #13306f; --bianco: #fff; --tenue: rgba(255,255,255,.72); --verde: #22c55e; --arancio: #f5a524; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--bianco); overflow: hidden; cursor: default;
+    background: radial-gradient(1400px 800px at 15% -10%, #2a4fb0 0%, transparent 60%), linear-gradient(160deg, var(--sfondo1) 0%, var(--sfondo2) 60%, #0f1f4d 100%);
+  }
+  .nascosto { display: none !important; }
+  .schermo { position: fixed; inset: 0; display: flex; flex-direction: column; padding: 2.2vh 3vw 3vh; }
+  .testa { display: flex; align-items: center; gap: 1.2vw; padding-bottom: 1.6vh; border-bottom: 1px solid rgba(255,255,255,.15); }
+  .testa img { height: 5.2vh; }
+  .testa .t b { display: block; font-size: 2.6vh; }
+  .testa .t span { font-size: 1.8vh; color: var(--tenue); }
+  .testa .dx { margin-left: auto; text-align: right; font-size: 1.9vh; color: var(--tenue); }
+  .testa .dx b { color: #fff; font-size: 2.3vh; letter-spacing: .3vw; font-family: ui-monospace, Menlo, monospace; }
+  .corpo { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+
+  /* Attesa */
+  .attesa { display: grid; grid-template-columns: 1.3fr 1fr; gap: 5vw; align-items: center; }
+  .attesa .sx { text-align: center; }
+  .attesa .logo { width: min(34vh, 28vw); opacity: .97; }
+  .attesa h1 { font-size: min(7.4vh, 5.4vw); line-height: 1.08; margin: 3vh 0 1.4vh; letter-spacing: -.02em; }
+  .attesa .raduno { font-size: min(3.6vh, 2.6vw); color: var(--tenue); }
+  .attesa .qrbox { background: #fff; color: #0f1f4d; border-radius: 3vh; padding: 3vh; text-align: center; box-shadow: 0 4vh 9vh -3vh rgba(0,0,0,.6); }
+  .attesa .qrbox svg { width: min(46vh, 30vw); height: auto; display: block; margin: 0 auto; }
+  .attesa .qrbox .inq { font-size: 3vh; font-weight: 800; margin-bottom: 1.4vh; }
+  .attesa .qrbox .cod { font-family: ui-monospace, Menlo, monospace; font-size: 5vh; font-weight: 900; letter-spacing: 1.2vh; margin-top: 1.4vh; }
+  .attesa .qrbox .reg { font-size: 2.2vh; color: #6b7084; margin-top: .6vh; }
+
+  /* Votazione in corso */
+  .corso { text-align: center; }
+  .pill { display: inline-block; padding: 1vh 2.4vh; border-radius: 99px; font-weight: 900; letter-spacing: .25vh; font-size: 2.2vh; background: rgba(239,68,68,.18); color: #fecaca; border: 1px solid rgba(239,68,68,.45); }
+  .pill::before { content: '● '; color: #ef4444; animation: lampeggia 1.2s infinite; }
+  @keyframes lampeggia { 50% { opacity: .2; } }
+  .corso h1 { font-size: min(8vh, 6vw); margin: 2.4vh 0 .6vh; letter-spacing: -.02em; }
+  .corso .scelte { font-size: 2.6vh; color: var(--tenue); }
+  .candidati { display: grid; gap: 2vh 2vw; margin: 4vh auto 0; max-width: 92vw; }
+  .cand { display: flex; align-items: center; gap: 2vh; padding: 2.2vh 2.6vh; border-radius: 2.6vh; text-align: left;
+    background: linear-gradient(135deg, var(--c1), var(--c2)); box-shadow: 0 1.6vh 3.6vh -1.6vh var(--c2), inset 0 1px 0 rgba(255,255,255,.25); }
+  .cand .ini { width: 8vh; height: 8vh; flex: none; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.2); border: .3vh solid rgba(255,255,255,.45); font-weight: 900; font-size: 3vh; }
+  .cand .n { font-weight: 800; line-height: 1.1; }
+  .conta { margin-top: 5vh; }
+  .conta .num { font-size: 10vh; font-weight: 900; line-height: 1; }
+  .conta .num span { font-size: 5vh; color: var(--tenue); }
+  .conta .et { font-size: 2.6vh; color: var(--tenue); margin-top: .6vh; }
+  .barra { height: 1.8vh; border-radius: 99px; background: rgba(255,255,255,.15); overflow: hidden; margin: 2.4vh auto 0; width: min(70vw, 900px); }
+  .barra i { display: block; height: 100%; background: linear-gradient(90deg, #60a5fa, #a5b4fc); transition: width .5s; }
+  .tutti { display: inline-block; margin-top: 3vh; padding: 1.6vh 3vh; border-radius: 2vh; background: rgba(34,197,94,.18); border: 2px solid var(--verde); color: #bbf7d0; font-size: 3vh; font-weight: 800; }
+
+  /* Risultati */
+  .ris h1 { font-size: min(6.6vh, 5vw); margin: 0 0 1vh; text-align: center; letter-spacing: -.02em; }
+  .ris .info { text-align: center; font-size: 2.3vh; color: var(--tenue); margin-bottom: 3vh; }
+  .righe { display: grid; gap: 1.6vh; width: min(92vw, 1500px); margin: 0 auto; }
+  .riga { display: grid; grid-template-columns: 8vh 1fr auto; align-items: center; gap: 2.4vh; padding: 1.8vh 2.6vh; border-radius: 2.4vh; background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.12); }
+  .riga .pos { width: 7vh; height: 7vh; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 3vh; background: rgba(255,255,255,.14); }
+  .riga .n { font-weight: 800; line-height: 1.1; }
+  .riga .et { display: inline-block; margin-left: 1.8vh; padding: .8vh 2vh; border-radius: 99px; font-size: 3vh; font-weight: 900; letter-spacing: .15vh; vertical-align: middle; }
+  .riga .b { height: 1.4vh; border-radius: 99px; background: rgba(255,255,255,.14); margin-top: 1.2vh; overflow: hidden; }
+  .riga .b i { display: block; height: 100%; background: #93c5fd; }
+  .riga .v { text-align: right; }
+  .riga .v b { display: block; font-size: 6vh; line-height: 1; }
+  .riga .v span { font-size: 2.2vh; color: var(--tenue); }
+  .riga.vinto { background: rgba(34,197,94,.2); border-color: var(--verde); }
+  .riga.vinto .pos { background: var(--verde); }
+  .riga.vinto .b i { background: var(--verde); }
+  .riga.vinto .et { background: var(--verde); color: #fff; }
+  .riga.ballo { background: rgba(245,165,36,.16); border-color: var(--arancio); }
+  .riga.ballo .pos, .riga.ballo .et { background: var(--arancio); color: #fff; }
+  .riga.ballo .b i { background: var(--arancio); }
+  .riga.fuori { opacity: .5; }
+  .riga.fuori .et { background: rgba(255,255,255,.2); }
+  .avviso { text-align: center; margin: 2.4vh auto 0; font-size: 2.8vh; font-weight: 800; padding: 1.4vh 3vh; border-radius: 2vh; width: fit-content; }
+  .avviso.ballo { background: rgba(245,165,36,.18); border: 2px solid var(--arancio); color: #fde68a; }
+  .avviso.nessuno { background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.25); }
+
+  .tasto { position: fixed; right: 2vw; bottom: 2vh; border: 0; border-radius: 99px; padding: 1.2vh 2.4vh; font-size: 1.8vh; font-weight: 700; color: #fff; background: rgba(255,255,255,.16); cursor: pointer; }
+  .tasto:hover { background: rgba(255,255,255,.28); }
+  .messaggio { margin: auto; text-align: center; font-size: 3vh; color: var(--tenue); max-width: 70vw; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div class="schermo">
+  <div class="testa">
+    <img src="logo-bianco.png" alt="">
+    <div class="t"><b id="tNome">Elezioni e Votazioni</b><span id="tSotto"></span></div>
+    <div class="dx">Codice<br><b id="tCod"></b></div>
+  </div>
+  <div class="corpo" id="corpo"><div class="messaggio">Collegamento…</div></div>
+</div>
+<button class="tasto" id="tutto">⛶ Tutto schermo</button>
+
+<script type="module">
+import qrcode from './qrcode.mjs?v=4';
+import { db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, doc, collection, onSnapshot } from './comune.js?v=4';
+
+const $ = id => document.getElementById(id);
+const S = (new URLSearchParams(location.search).get('s') || '').toUpperCase();
+let sessione = null, vot = null, ris = null, nIscritti = 0, nVotati = 0;
+let fermaVot = null, fermaRis = null, fermaVotati = null, vId = null;
+
+// Tutto schermo: con il pulsante, con doppio clic o con il tasto F.
+function tuttoSchermo() {
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  else (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)?.call(document.documentElement);
+}
+$('tutto').onclick = tuttoSchermo;
+document.ondblclick = tuttoSchermo;
+document.onkeydown = e => { if (e.key === 'f' || e.key === 'F') tuttoSchermo(); };
+document.onfullscreenchange = () => $('tutto').classList.toggle('nascosto', !!document.fullscreenElement);
+
+// Grandezza delle scritte secondo quanti nomi ci sono.
+const grandezza = n => n <= 2 ? 7 : n <= 4 ? 5.6 : n <= 6 ? 4.4 : n <= 9 ? 3.6 : 2.8;
+const colonne = n => n <= 3 ? 1 : n <= 8 ? 2 : 3;
+
+function disegna() {
+  if (!sessione) return;
+  $('tNome').textContent = nomeVotazione(sessione);
+  $('tSotto').textContent = [sessione.raduno, dataBella(sessione.data)].filter(Boolean).join(' · ');
+  $('tCod').textContent = S;
+  const c = $('corpo');
+  if (vot && vot.stato === 'aperta') {
+    const n = vot.candidati.length, tot = sessione.votanti > 0 ? sessione.votanti : nIscritti;
+    const tutti = nIscritti > 0 && nVotati >= nIscritti;
+    c.innerHTML = `<div class="corso">
+      <span class="pill">VOTAZIONE IN CORSO</span>
+      <h1>${esc(vot.titolo)}</h1>
+      <div class="scelte">${vot.scelte > 1 ? `Si possono scegliere fino a ${vot.scelte} nomi` : 'Si sceglie un nome'}</div>
+      <div class="candidati" style="grid-template-columns:repeat(${colonne(n)},minmax(0,1fr))">
+        ${vot.candidati.map((nome, i) => { const [c1, c2] = COLORI[i % COLORI.length];
+          return `<div class="cand" style="--c1:${c1};--c2:${c2}"><span class="ini">${esc(iniziali(nome))}</span><span class="n" style="font-size:${grandezza(n)}vh">${esc(nome)}</span></div>`; }).join('')}
+      </div>
+      <div class="conta">
+        <div class="num">${nVotati}<span> / ${tot}</span></div>
+        <div class="et">hanno votato</div>
+        <div class="barra"><i style="width:${tot ? Math.min(100, nVotati / tot * 100) : 0}%"></i></div>
+        ${tutti ? '<div class="tutti">✓ Hanno votato tutti</div>' : ''}
+      </div></div>`;
+    return;
+  }
+  if (vot && vot.stato === 'chiusa' && ris) {
+    const ballo = ris.ballottaggio || [], fuori = ris.fuori || [], arrivate = ris.arrivate ?? ris.votanti;
+    const ordine = vot.candidati.map((_, i) => i).sort((a, b) => ris.voti[b] - ris.voti[a]);
+    const max = Math.max(1, ...ris.voti), n = ordine.length;
+    const fs = n <= 3 ? 5.6 : n <= 5 ? 4.4 : n <= 7 ? 3.4 : 2.6;
+    let avviso = '';
+    if (ballo.length) avviso = `<div class="avviso ballo">⟳ Va al ballottaggio: ${ballo.map(i => esc(vot.candidati[i])).join(', ')}</div>`;
+    else if (arrivate && !ris.vinti.length) avviso = `<div class="avviso nessuno">Nessuno ha raggiunto la maggioranza (servivano ${ris.maggioranza} voti)</div>`;
+    c.innerHTML = `<div class="ris">
+      <h1>${esc(vot.titolo)}</h1>
+      <div class="info">Votanti ${ris.votanti} · servono ${ris.maggioranza} voti per la maggioranza · schede bianche ${ris.bianche}</div>
+      <div class="righe">${ordine.map((i, k) => {
+        const vinto = ris.vinti.includes(i), alBallo = ballo.includes(i), escluso = fuori.includes(i);
+        const perc = ris.votanti ? Math.round(ris.voti[i] / ris.votanti * 1000) / 10 : 0;
+        const et = vinto ? 'HA VINTO' : alBallo ? 'BALLOTTAGGIO' : escluso ? 'FUORI' : '';
+        return `<div class="riga ${vinto ? 'vinto' : alBallo ? 'ballo' : escluso ? 'fuori' : ''}">
+          <div class="pos">${k + 1}</div>
+          <div><span class="n" style="font-size:${fs}vh">${esc(vot.candidati[i])}</span>${et ? `<span class="et">${et}</span>` : ''}
+            <div class="b"><i style="width:${ris.voti[i] / max * 100}%"></i></div></div>
+          <div class="v"><b>${ris.voti[i]}</b><span>${perc.toLocaleString('it-IT')}%</span></div></div>`; }).join('')}</div>
+      ${avviso}</div>`;
+    return;
+  }
+  // In attesa: logo, nome della votazione e QR code per entrare.
+  const link = new URL('index.html?s=' + S, location.href).href;
+  const q = qrcode(0, 'M'); q.addData(link); q.make();
+  c.innerHTML = `<div class="attesa">
+    <div class="sx"><img class="logo" src="logo-bianco.png" alt=""><h1>${esc(nomeVotazione(sessione))}</h1><div class="raduno">${esc([sessione.raduno, dataBella(sessione.data)].filter(Boolean).join(' · '))}</div></div>
+    <div class="qrbox"><div class="inq">Inquadra per votare</div>${q.createSvgTag({ cellSize: 8, margin: 8, scalable: true })}
+      <div class="cod">${esc(S)}</div><div class="reg">${nIscritti} registrati</div></div></div>`;
+}
+
+function seguiVotazione(id) {
+  if (id === vId) return;
+  vId = id; vot = null; ris = null; nVotati = 0;
+  fermaVot?.(); fermaRis?.(); fermaVotati?.(); fermaVot = fermaRis = fermaVotati = null;
+  if (!id) { disegna(); return; }
+  fermaVot = onSnapshot(doc(db, 'sessioni', S, 'votazioni', id), snap => {
+    vot = snap.data();
+    if (vot?.stato === 'chiusa' && !fermaRis) fermaRis = onSnapshot(doc(db, 'sessioni', S, 'risultati', id), r => { ris = r.data() || null; disegna(); }, () => {});
+    disegna();
+  });
+  fermaVotati = onSnapshot(collection(db, 'sessioni', S, 'votazioni', id, 'votati'), snap => { nVotati = snap.size; disegna(); }, () => {});
+}
+
+(async () => {
+  await auth.authStateReady();
+  const u = auth.currentUser;
+  if (!S || !u || u.isAnonymous) {
+    $('corpo').innerHTML = '<div class="messaggio">Apri la proiezione dal programma del segretario<br>(pulsante «📺 Proiezione» nella sessione).</div>';
+    return;
+  }
+  onSnapshot(doc(db, 'sessioni', S), snap => { sessione = snap.data(); seguiVotazione(sessione?.corrente || null); disegna(); },
+    () => { $('corpo').innerHTML = '<div class="messaggio">Non puoi aprire questa sessione.</div>'; });
+  onSnapshot(collection(db, 'sessioni', S, 'iscritti'), snap => { nIscritti = snap.size; disegna(); }, () => {});
+})();
+</script>
+</body>
+</html>

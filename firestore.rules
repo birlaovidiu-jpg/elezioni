@@ -1,7 +1,13 @@
 rules_version = '2';
 
-// Regole del database per il programma Elezioni.
+// Regole del database per il programma Elezioni e Votazioni.
 // Da incollare in Firebase → Firestore Database → Regole → Pubblica.
+//
+// Chi lavora:
+//  - il Direttore (nome utente «ovidio») vede e può tutto;
+//  - le persone che il Direttore aggiunge (utenti/{uid} con attivo = true) vedono e lavorano
+//    solo le sessioni che hanno creato loro;
+//  - chi vota entra con un numero anonimo e vede solo la votazione del codice che ha.
 //
 // Segretezza del voto:
 //  - la scheda va nell'urna SENZA nome e SENZA ora (una voce con chiave a caso);
@@ -12,39 +18,36 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function entrato() { return request.auth != null; }
+    function direttore() {
+      return request.auth != null && request.auth.token.email == 'ovidio@elezioni-sdarm.firebaseapp.com';
+    }
+    function utente() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/utenti/$(request.auth.uid))
+        && get(/databases/$(database)/documents/utenti/$(request.auth.uid)).data.attivo == true;
+    }
     function segretario(s) {
-      return entrato() && exists(/databases/$(database)/documents/sessioni/$(s)/admin/$(request.auth.uid));
+      return direttore() || (utente()
+        && get(/databases/$(database)/documents/sessioni/$(s)).data.get('owner', '') == request.auth.uid);
     }
     function testo(x, min, max) { return x is string && x.size() >= min && x.size() <= max; }
 
-    // Codice segreto del segretario per ogni sessione: nessuno lo può leggere.
-    match /chiavi/{s} {
-      allow read: if false;
-      allow create: if entrato()
-        && request.resource.data.keys().hasOnly(['chiave'])
-        && testo(request.resource.data.chiave, 8, 40);
-    }
-
-    // Archivio del segretario: solo chi conosce il codice dell'archivio (12 lettere a caso) lo può leggere.
-    match /archivi/{a}/sessioni/{s} {
-      allow read, write: if entrato() && a.size() == 12;
+    // Le persone che lavorano con il programma: le aggiunge solo il Direttore.
+    match /utenti/{uid} {
+      allow read: if direttore() || (entrato() && request.auth.uid == uid);
+      allow write: if direttore();
     }
 
     match /sessioni/{s} {
-      allow read: if entrato();
-      allow create: if entrato()
-        && existsAfter(/databases/$(database)/documents/sessioni/$(s)/admin/$(request.auth.uid));
-      allow update: if segretario(s);
+      // Il codice della sessione basta per leggerla (serve a chi vota);
+      // l'elenco delle sessioni invece lo vede solo chi le ha create, e il Direttore.
+      allow get: if entrato();
+      allow list: if direttore() || (utente() && resource.data.owner == request.auth.uid);
+      allow create: if (direttore() || utente()) && request.resource.data.owner == request.auth.uid;
+      allow update: if segretario(s)
+        && (direttore() || request.resource.data.get('owner', '') == resource.data.get('owner', ''));
 
-      // Chi conosce il codice del segretario può diventare segretario (anche da un altro computer).
-      match /admin/{uid} {
-        allow read: if entrato() && request.auth.uid == uid;
-        allow create: if entrato() && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['chiave'])
-          && request.resource.data.chiave == getAfter(/databases/$(database)/documents/chiavi/$(s)).data.chiave;
-      }
-
-      // Registrazione di chi vota: nome, cognome, ruolo, chiesa.
+      // Registrazione di chi vota: nome, cognome, ruolo o incarico, chiesa.
       match /iscritti/{uid} {
         allow read: if entrato() && (request.auth.uid == uid || segretario(s));
         allow create, update: if entrato() && request.auth.uid == uid
@@ -52,8 +55,8 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['nome', 'cognome', 'ruolo', 'chiesa', 't'])
           && testo(request.resource.data.nome, 1, 60)
           && testo(request.resource.data.cognome, 1, 60)
-          && request.resource.data.ruolo in ['Delegato', 'Membro']
-          && testo(request.resource.data.chiesa, 1, 80);
+          && testo(request.resource.data.ruolo, 1, 60)
+          && testo(request.resource.data.chiesa, 0, 80);
         // Il segretario può togliere chi si è registrato per errore.
         allow delete: if segretario(s);
       }
