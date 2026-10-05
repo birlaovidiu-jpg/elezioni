@@ -5,7 +5,7 @@ import { getAuth, signInAnonymously, connectAuthEmulator, signInWithEmailAndPass
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { initializeFirestore, connectFirestoreEmulator, doc, getDoc }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import { FIREBASE } from './config.js?v=16';
+import { FIREBASE } from './config.js?v=17';
 
 export * from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
@@ -29,7 +29,7 @@ export { db, auth };
 
 // ---------- Versione: se su Internet ce n'è una più nuova, la pagina si ricarica da sola ----------
 // (va cambiata insieme a versione.txt e ai «?v=» delle pagine a ogni pubblicazione)
-export const VERSIONE = '16';
+export const VERSIONE = '17';
 export async function controllaVersione() {
   try {
     const r = await fetch('versione.txt?x=' + Date.now(), { cache: 'no-store' });
@@ -154,6 +154,13 @@ export function iniziali(nome) {
   const p = String(nome).trim().split(/\s+/).filter(Boolean);
   return ((p[0]?.[0] || '') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
 }
+// Ora di un momento salvato su Firebase: «20:15».
+export function ora(t) {
+  const d = t?.toDate ? t.toDate() : (t ? new Date(t) : null);
+  return d ? d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '';
+}
+// L'indirizzo del QR: il più corto possibile, così il QR ha quadratini più grandi e si legge da più lontano.
+export function linkVoto(S) { return new URL('./?s=' + S, location.href).href; }
 export function dataBella(d) {
   if (!d) return '';
   const [y, m, g] = d.split('-').map(Number);

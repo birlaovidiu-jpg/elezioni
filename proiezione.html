@@ -23,16 +23,17 @@
   .testa .t span { font-size: 1.8vh; color: var(--tenue); }
   .testa .dx { margin-left: auto; text-align: right; font-size: 1.9vh; color: var(--tenue); }
   .testa .dx b { color: #fff; font-size: 2.3vh; letter-spacing: .3vw; font-family: ui-monospace, Menlo, monospace; }
-  .corpo { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+  .corpo { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
 
   /* Attesa */
-  .attesa { display: grid; grid-template-columns: 1.3fr 1fr; gap: 5vw; align-items: center; }
+  .attesa { display: grid; grid-template-columns: 1fr auto; gap: 4vw; align-items: center; }
   .attesa .sx { text-align: center; }
   .attesa .logo { width: min(34vh, 28vw); opacity: .97; }
   .attesa h1 { font-size: min(7.4vh, 5.4vw); line-height: 1.08; margin: 3vh 0 1.4vh; letter-spacing: -.02em; }
   .attesa .raduno { font-size: min(3.6vh, 2.6vw); color: var(--tenue); }
-  .attesa .qrbox { background: #fff; color: #0f1f4d; border-radius: 3vh; padding: 3vh; text-align: center; box-shadow: 0 4vh 9vh -3vh rgba(0,0,0,.6); }
-  .attesa .qrbox svg { width: min(46vh, 30vw); height: auto; display: block; margin: 0 auto; }
+  .attesa .qrbox { background: #fff; color: #0f1f4d; border-radius: 3vh; padding: 2vh 2vh 1.6vh; text-align: center; box-shadow: 0 4vh 9vh -3vh rgba(0,0,0,.6); }
+  /* QR il più grande possibile: si deve leggere dal fondo della sala */
+  .attesa .qrbox svg { width: min(66vh, 50vw); height: auto; display: block; margin: 0 auto; }
   .attesa .qrbox .inq { font-size: 3vh; font-weight: 800; margin-bottom: 1.4vh; }
   .attesa .qrbox .cod { font-family: ui-monospace, Menlo, monospace; font-size: 5vh; font-weight: 900; letter-spacing: 1.2vh; margin-top: 1.4vh; }
   .attesa .qrbox .reg { font-size: 2.2vh; color: #6b7084; margin-top: .6vh; }
@@ -49,13 +50,13 @@
     background: linear-gradient(135deg, var(--c1), var(--c2)); box-shadow: 0 1.6vh 3.6vh -1.6vh var(--c2), inset 0 1px 0 rgba(255,255,255,.25); }
   .cand .ini { width: 8vh; height: 8vh; flex: none; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.2); border: .3vh solid rgba(255,255,255,.45); font-weight: 900; font-size: 3vh; }
   .cand .n { font-weight: 800; line-height: 1.1; }
-  .conta { margin-top: 5vh; }
+  .conta { margin-top: 3.5vh; }
   .conta .num { font-size: 10vh; font-weight: 900; line-height: 1; }
   .conta .num span { font-size: 5vh; color: var(--tenue); }
   .conta .et { font-size: 2.6vh; color: var(--tenue); margin-top: .6vh; }
   .barra { height: 1.8vh; border-radius: 99px; background: rgba(255,255,255,.15); overflow: hidden; margin: 2.4vh auto 0; width: min(70vw, 900px); }
   .barra i { display: block; height: 100%; background: linear-gradient(90deg, #60a5fa, #a5b4fc); transition: width .5s; }
-  .tutti { display: inline-block; margin-top: 3vh; padding: 1.6vh 3vh; border-radius: 2vh; background: rgba(34,197,94,.18); border: 2px solid var(--verde); color: #bbf7d0; font-size: 3vh; font-weight: 800; }
+  .tutti { display: inline-block; margin-top: 2.2vh; padding: 1.6vh 3vh; border-radius: 2vh; background: rgba(34,197,94,.18); border: 2px solid var(--verde); color: #bbf7d0; font-size: 3vh; font-weight: 800; }
 
   /* Risultati */
   .ris h1 { font-size: min(6.6vh, 5vw); margin: 0 0 1vh; text-align: center; letter-spacing: -.02em; }
@@ -106,12 +107,12 @@
 <button class="tasto" id="tutto">⛶ Tutto schermo</button>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=16';
-import { controllaVersione, db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, righeRisultato, notaNessuno, doc, collection, onSnapshot } from './comune.js?v=16';
+import qrcode from './qrcode.mjs?v=17';
+import { controllaVersione, linkVoto, db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, righeRisultato, notaNessuno, doc, collection, onSnapshot } from './comune.js?v=17';
 
 const $ = id => document.getElementById(id);
 const S = (new URLSearchParams(location.search).get('s') || '').toUpperCase();
-let sessione = null, vot = null, ris = null, nIscritti = 0, nVotati = 0;
+let sessione = null, vot = null, ris = null, presenti = new Set(), votatiIds = new Set(), nVotati = 0;
 let fermaVot = null, fermaRis = null, fermaVotati = null, vId = null;
 
 // Tutto schermo: con il pulsante, con doppio clic o con il tasto F.
@@ -128,15 +129,26 @@ document.onfullscreenchange = () => $('tutto').classList.toggle('nascosto', !!do
 const grandezza = n => n <= 2 ? 7 : n <= 4 ? 5.6 : n <= 6 ? 4.4 : n <= 9 ? 3.6 : 2.8;
 const colonne = n => n <= 3 ? 1 : n <= 8 ? 2 : 3;
 
-function disegna() {
+// Tutto deve stare nello schermo: se il contenuto è più alto (o più largo) della sala, si rimpicciolisce.
+function adatta() {
+  const c = $('corpo'), el = c.firstElementChild;
+  if (!el) return;
+  el.style.zoom = 1;
+  const k = Math.min(1, c.clientHeight / el.scrollHeight, c.clientWidth / el.scrollWidth);
+  if (k < 1) el.style.zoom = Math.max(0.35, k * 0.97);
+}
+addEventListener('resize', adatta);
+function disegna() { disegnaCorpo(); adatta(); }
+function disegnaCorpo() {
   if (!sessione) return;
   $('tNome').textContent = nomeVotazione(sessione);
   $('tSotto').textContent = [sessione.raduno, dataBella(sessione.data)].filter(Boolean).join(' · ');
   $('tCod').textContent = S;
   const c = $('corpo');
   if (vot && vot.stato === 'aperta') {
-    const n = vot.candidati.length, tot = sessione.votanti > 0 ? sessione.votanti : nIscritti;
-    const tutti = nIscritti > 0 && nVotati >= nIscritti;
+    const n = vot.candidati.length, tot = sessione.votanti > 0 ? sessione.votanti : presenti.size;
+    // Hanno votato tutti i presenti (chi è uscito dalla sala non conta).
+    const tutti = presenti.size > 0 && [...presenti].every(id => votatiIds.has(id));
     c.innerHTML = `<div class="corso">
       <span class="pill">VOTAZIONE IN CORSO</span>
       <h1>${esc(vot.titolo)}</h1>
@@ -182,17 +194,17 @@ function disegna() {
     return;
   }
   // In attesa: logo, nome della votazione e QR code per entrare.
-  const link = new URL('index.html?s=' + S, location.href).href;
-  const q = qrcode(0, 'M'); q.addData(link); q.make();
+  const link = linkVoto(S);
+  const q = qrcode(0, 'L'); q.addData(link); q.make();
   c.innerHTML = `<div class="attesa">
     <div class="sx"><img class="logo" src="logo-bianco.png" alt=""><h1>${esc(nomeVotazione(sessione))}</h1><div class="raduno">${esc([sessione.raduno, dataBella(sessione.data)].filter(Boolean).join(' · '))}</div></div>
     <div class="qrbox"><div class="inq">Inquadra per votare</div>${q.createSvgTag({ cellSize: 8, margin: 8, scalable: true })}
-      <div class="cod">${esc(S)}</div><div class="reg">${nIscritti} registrati</div></div></div>`;
+      <div class="cod">${esc(S)}</div><div class="reg">${presenti.size} registrati</div></div></div>`;
 }
 
 function seguiVotazione(id) {
   if (id === vId) return;
-  vId = id; vot = null; ris = null; nVotati = 0;
+  vId = id; vot = null; ris = null; nVotati = 0; votatiIds = new Set();
   fermaVot?.(); fermaRis?.(); fermaVotati?.(); fermaVot = fermaRis = fermaVotati = null;
   if (!id) { disegna(); return; }
   fermaVot = onSnapshot(doc(db, 'sessioni', S, 'votazioni', id), snap => {
@@ -200,7 +212,8 @@ function seguiVotazione(id) {
     if (vot?.stato === 'chiusa' && !fermaRis) fermaRis = onSnapshot(doc(db, 'sessioni', S, 'risultati', id), r => { ris = r.data() || null; disegna(); }, () => {});
     disegna();
   });
-  fermaVotati = onSnapshot(collection(db, 'sessioni', S, 'votazioni', id, 'votati'), snap => { nVotati = snap.size; disegna(); }, () => {});
+  fermaVotati = onSnapshot(collection(db, 'sessioni', S, 'votazioni', id, 'votati'), snap => {
+    votatiIds = new Set(snap.docs.map(d => d.id)); nVotati = snap.size; disegna(); }, () => {});
 }
 
 controllaVersione();
@@ -215,7 +228,8 @@ controllaVersione();
     if (!snap.exists()) { $('corpo').innerHTML = '<div class="messaggio">Questa sessione è stata eliminata.</div>'; sessione = null; return; }
     sessione = snap.data(); seguiVotazione(sessione?.corrente || null); disegna(); },
     () => { $('corpo').innerHTML = '<div class="messaggio">Non puoi aprire questa sessione.</div>'; });
-  onSnapshot(collection(db, 'sessioni', S, 'iscritti'), snap => { nIscritti = snap.size; disegna(); }, () => {});
+  onSnapshot(collection(db, 'sessioni', S, 'iscritti'), snap => {
+    presenti = new Set(snap.docs.filter(d => !d.data().uscito).map(d => d.id)); disegna(); }, () => {});
 })();
 </script>
 </body>

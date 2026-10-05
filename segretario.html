@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1f4d">
 <link rel="icon" href="icona-192.png">
 <link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=16">
+<link rel="stylesheet" href="stile.css?v=17">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -129,7 +129,12 @@
   .blocco .riassunto { margin: 12px 0 14px; }
   .etic-chiusa { padding: 10px 16px; border-radius: 12px; background: #fee2e2; color: var(--rosso); font-weight: 900; letter-spacing: .5px; }
   .avviso-chiusa { background: #fff1f1; border-color: #f3c4c4; color: #7f1d1d; font-size: 16px; }
-  .sess-chiusa .iscritto .togli { display: none; }
+  .sess-chiusa .iscritto .togli, .sess-chiusa .iscritto .esce { display: none; }
+  .iscritto .esce { flex: none; border: 1.5px solid var(--linea); background: #fff; border-radius: 10px; padding: 6px 10px; font-size: 13px; font-weight: 700; color: var(--blu-scuro); }
+  .iscritto .esce:hover { border-color: var(--blu); }
+  .iscritto.fuori-sala b, .iscritto.fuori-sala span { opacity: .5; }
+  .iscritto em { display: block; font-style: normal; font-size: 12.5px; font-weight: 700; color: var(--rosso); }
+  .iscritto.fuori-sala .esce { color: var(--verde); }
   .sess { position: relative; }
   .sess .cestino { position: absolute; right: 10px; bottom: 10px; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; opacity: .45; transition: opacity .15s, background .15s; }
   .sess:hover .cestino { opacity: 1; }
@@ -316,7 +321,7 @@
         <input class="campo" id="sVotanti" type="number" min="1" inputmode="numeric" placeholder="—">
         <div class="piccolo" id="sVotantiNota">Per vincere servono più della metà di questo numero.</div>
       </div>
-      <div class="contatore"><b id="nIscritti">0</b><span class="piccolo">registrati</span></div>
+      <div class="contatore"><b id="nIscritti">0</b><span class="piccolo" id="nIscrittiEt">registrati</span></div>
       <div class="iscritti" id="iscritti"></div>
     </aside>
 
@@ -426,12 +431,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=16';
-import { creaRapporto } from './rapporto.js?v=16';
-import { controllaVersione, db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
+import qrcode from './qrcode.mjs?v=17';
+import { creaRapporto } from './rapporto.js?v=17';
+import { controllaVersione, ora, linkVoto, db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
-         doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=16';
+         doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
+  from './comune.js?v=17';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
@@ -628,8 +633,8 @@ async function apriSessione(s) {
   const nota = sessioni.find(x => x.s === S) || { s };
   // La pagina si apre subito con quello che so già; i dati arrivano mentre la si guarda.
   titoliSessione(nota);
-  const link = new URL('index.html?s=' + S, location.href).href;
-  const q = qrcode(0, 'M'); q.addData(link); q.make();
+  const link = linkVoto(S);
+  const q = qrcode(0, 'L'); q.addData(link); q.make();
   const svg = q.createSvgTag({ cellSize: 8, margin: 16, scalable: true });
   $('qr').innerHTML = svg; $('qrGrande').innerHTML = svg;
   $('codS').textContent = S; $('codGrande').textContent = S;
@@ -640,9 +645,22 @@ async function apriSessione(s) {
 
   ascoltatori.push(onSnapshot(collection(db, 'sessioni', S, 'iscritti'), snap => {
     iscritti = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.cognome + a.nome).localeCompare(b.cognome + b.nome, 'it'));
-    $('nIscritti').textContent = iscritti.length;
-    $('iscritti').innerHTML = iscritti.map(r => `<div class="iscritto"><div><b>${esc(r.cognome)} ${esc(r.nome)}</b><span>${esc(ruoloCompleto(r))}</span></div>
+    const usciti = iscritti.filter(r => r.uscito).length;
+    $('nIscritti').textContent = iscritti.length - usciti;
+    $('nIscrittiEt').textContent = usciti ? `presenti · ${usciti} ${usciti === 1 ? 'uscito' : 'usciti'}` : 'registrati';
+    $('iscritti').innerHTML = iscritti.map(r => `<div class="iscritto ${r.uscito ? 'fuori-sala' : ''}"><div><b>${esc(r.cognome)} ${esc(r.nome)}</b><span>${esc(ruoloCompleto(r))}</span>
+        ${r.uscito ? `<em>uscito alle ${esc(ora(r.uscito))}</em>` : ''}</div>
+      <button class="esce" type="button" data-id="${esc(r.id)}" data-uscito="${r.uscito ? 1 : ''}">${r.uscito ? 'Rientrato' : 'Uscito'}</button>
       <button class="togli" type="button" title="Togli dall'elenco" data-id="${esc(r.id)}" data-nome="${esc(r.nome + ' ' + r.cognome)}">×</button></div>`).join('');
+    // Uscito: si segna l'ora e il numero dei votanti scende di uno (Rientrato fa il contrario).
+    $('iscritti').querySelectorAll('.esce').forEach(b => b.onclick = async () => {
+      const rientra = !!b.dataset.uscito;
+      const w = writeBatch(db);
+      w.update(doc(db, 'sessioni', S, 'iscritti', b.dataset.id), { uscito: rientra ? deleteField() : serverTimestamp() });
+      if (sessione.votanti > 0) w.update(doc(db, 'sessioni', S), { votanti: Math.max(1, sessione.votanti + (rientra ? 1 : -1)) });
+      b.disabled = true;
+      try { await w.commit(); } catch (e) { console.warn(e); alert('Non sono riuscito. Riprova.'); b.disabled = false; }
+    });
     $('iscritti').querySelectorAll('.togli').forEach(b => b.onclick = async () => {
       if (!confirm(`Togliere ${b.dataset.nome} dall'elenco dei registrati?\nSe ha già votato, il suo voto resta (è segreto e non si può riconoscere).`)) return;
       try { await deleteDoc(doc(db, 'sessioni', S, 'iscritti', b.dataset.id)); }
@@ -758,18 +776,20 @@ function disegnaStorico() {
 function stato() {
   const c = corrente();
   if (!c || c.stato !== 'aperta') return;
-  const si = iscritti.filter(r => votati.has(r.id)), no = iscritti.filter(r => !votati.has(r.id));
-  const tot = sessione.votanti > 0 ? sessione.votanti : iscritti.length;
+  // Chi è uscito dalla sala non conta più.
+  const presenti = iscritti.filter(r => !r.uscito);
+  const si = presenti.filter(r => votati.has(r.id)), no = presenti.filter(r => !votati.has(r.id));
+  const tot = sessione.votanti > 0 ? sessione.votanti : presenti.length;
   $('cVotati').textContent = votati.size;
   $('cTot').textContent = tot;
   $('cBarra').style.width = (tot ? Math.min(100, votati.size / tot * 100) : 0) + '%';
   const riga = (r, cl) => `<div class="p ${cl}">${esc(r.cognome)} ${esc(r.nome)}<span>${esc(ruoloCompleto(r))}</span></div>`;
   $('nNo').textContent = no.length; $('lNo').innerHTML = no.map(r => riga(r, 'no')).join('');
   $('nSi').textContent = si.length; $('lSi').innerHTML = si.map(r => riga(r, 'si')).join('');
-  const tutti = iscritti.length > 0 && no.length === 0;
+  const tutti = presenti.length > 0 && no.length === 0;
   $('cTutti').classList.toggle('nascosto', !tutti);
   $('fine').disabled = !tutti;
-  $('cManca').textContent = tutti ? '' : !iscritti.length ? 'Non c\'è ancora nessun registrato.'
+  $('cManca').textContent = tutti ? '' : !presenti.length ? 'Non c\'è ancora nessun registrato.'
     : `Non si può ancora chiudere: ${no.length === 1 ? 'manca 1 voto' : `mancano ${no.length} voti`}.`;
 }
 

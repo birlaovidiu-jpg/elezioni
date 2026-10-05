@@ -1,6 +1,6 @@
 // Rapporto PDF delle votazioni su carta intestata (come nel programma delle Pubblicazioni):
 // fascia blu con il logo bianco, la chiesa a sinistra e il nome del foglio a destra.
-import { CHIESA, TIPI, nomeVotazione, dataBella, righeRisultato, notaNessuno } from './comune.js?v=16';
+import { CHIESA, TIPI, nomeVotazione, dataBella, righeRisultato, notaNessuno, ora } from './comune.js?v=17';
 
 let pronto = null;
 function caricaScript(src) {
@@ -137,8 +137,12 @@ export async function creaRapporto({ codice, sessione, iscritti, votazioni, risu
   titoloSezione(intestazioni[sessione.tipo] || 'Partecipanti');
   const persone = [...iscritti].sort((a, b) => (a.cognome + a.nome).localeCompare(b.cognome + b.nome, 'it'));
   if (persone.length) {
-    tabella([{ t: 'N.', w: 12 }, { t: 'Nome e cognome', w: 70 }, { t: 'Ruolo', w: 50 }, { t: 'Chiesa', w: W - 2 * M - 132 }],
-      persone.map((p, i) => ({ celle: [{ t: String(i + 1), colore: GRIGIO }, { t: `${p.nome} ${p.cognome}`, peso: 'bold' }, { t: p.ruolo }, { t: p.chiesa || '—' }] })));
+    // Chi è uscito dalla sala: l'ora in cui è uscito.
+    const usciti = persone.some(p => p.uscito);
+    tabella([{ t: 'N.', w: 12 }, { t: 'Nome e cognome', w: usciti ? 62 : 70 }, { t: 'Ruolo', w: usciti ? 36 : 50 }, { t: 'Chiesa', w: usciti ? 40 : W - 2 * M - 132 },
+      ...(usciti ? [{ t: 'Uscito', w: W - 2 * M - 150 }] : [])],
+      persone.map((p, i) => ({ celle: [{ t: String(i + 1), colore: GRIGIO }, { t: `${p.nome} ${p.cognome}`, peso: 'bold' }, { t: p.ruolo }, { t: p.chiesa || '—' },
+        ...(usciti ? [{ t: p.uscito ? 'alle ' + ora(p.uscito) : '', colore: ROSSO }] : [])] })));
   } else { font('normal', 10, GRIGIO); testo('Nessun registrato.', M, y); y += 8; }
 
   // ---------- Risultati ----------

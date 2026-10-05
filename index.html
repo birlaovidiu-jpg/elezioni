@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icona-180.png">
 <link rel="icon" href="icona-192.png">
-<link rel="stylesheet" href="stile.css?v=16">
+<link rel="stylesheet" href="stile.css?v=17">
 <style>
   main { max-width: 560px; margin: 0 auto; padding: 18px 16px calc(130px + env(safe-area-inset-bottom)); }
   .titolo-vot { text-align: center; margin: 6px 0 4px; font-size: 26px; font-weight: 800; color: var(--blu-scuro); }
@@ -103,6 +103,10 @@
   .camera video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .camera .mirino { position: relative; width: min(70vw, 70vh); aspect-ratio: 1; border-radius: 26px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); border: 4px solid #fff; }
   .camera .cam-testo { position: absolute; top: calc(env(safe-area-inset-top) + 28px); left: 16px; right: 16px; text-align: center; color: #fff; font-size: 19px; font-weight: 700; text-shadow: 0 1px 6px rgba(0,0,0,.6); }
+  .camera .cam-testo small { display: block; font-size: 14px; font-weight: 500; opacity: .85; margin-top: 4px; }
+  .camera .zoom { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 96px); left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .camera .zoom button { width: 54px; height: 54px; border-radius: 50%; border: 2px solid rgba(255,255,255,.7); background: rgba(0,0,0,.45); color: #fff; font-size: 17px; font-weight: 800; }
+  .camera .zoom button.on { background: #fff; color: #000; }
   .camera .cam-chiudi { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 28px); left: 50%; transform: translateX(-50%); min-width: 200px; }
   .installa { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; padding: 12px 14px; border-radius: 14px; background: #fff; border: 1px solid var(--linea); font-size: 14px; line-height: 1.4; }
   .installa .x { margin-left: auto; border: 0; background: none; font-size: 20px; color: var(--grigio); padding: 4px 6px; }
@@ -223,13 +227,14 @@
 <div id="camera" class="camera nascosto">
   <video id="video" playsinline muted autoplay></video>
   <div class="mirino"></div>
-  <div class="cam-testo">Inquadra il QR code del segretario</div>
+  <div class="cam-testo">Inquadra il QR code del segretario<small>Se è lontano, usa l'ingrandimento qui sotto</small></div>
+  <div class="zoom nascosto" id="zoom"></div>
   <button class="bt chiaro cam-chiudi" id="chiudiCam" type="button">Annulla</button>
 </div>
 
 <script type="module">
-import { controllaVersione, db, COLLEGATO, entra, idCasuale, esc, iniziali, ruoloCompleto, nomeVotazione, dataBella, COLORI,
-         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=16';
+import { controllaVersione, ora, db, COLLEGATO, entra, idCasuale, esc, iniziali, ruoloCompleto, nomeVotazione, dataBella, COLORI,
+         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=17';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vSenza', 'vCarica', 'vRegistra', 'vAttesa', 'vVota', 'vVotato', 'vChiusa'];
@@ -312,7 +317,7 @@ $('vaiCodice').onclick = () => {
 $('codiceManuale').onkeydown = e => { if (e.key === 'Enter') $('vaiCodice').click(); };
 
 // --- Fotocamera: legge il QR code del segretario ed entra subito ---
-let flusso = null, rilevatore = null, scansiona = false;
+let flusso = null, rilevatore = null, scansiona = false, giro = false;
 const tela = document.createElement('canvas'), ctx = tela.getContext('2d', { willReadFrequently: true });
 function caricaLettore() {
   return window.jsQR ? Promise.resolve() : new Promise((ok, no) => {
@@ -329,13 +334,15 @@ function codiceDa(t) {
 $('scansiona').onclick = async () => {
   $('erroreCodice').textContent = '';
   try {
-    flusso = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+    // Alta risoluzione: il QR del segretario può essere lontano (sale grandi).
+    flusso = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
   } catch (e) {
     $('erroreCodice').textContent = 'Non riesco ad aprire la fotocamera. Dai il permesso alla fotocamera, oppure scrivi il codice.';
     return;
   }
   $('camera').classList.remove('nascosto');
   const v = $('video'); v.srcObject = flusso; v.play().catch(() => {});
+  preparaZoom();
   try {
     if ('BarcodeDetector' in window && (await BarcodeDetector.getSupportedFormats()).includes('qr_code'))
       rilevatore = new BarcodeDetector({ formats: ['qr_code'] });
@@ -343,6 +350,19 @@ $('scansiona').onclick = async () => {
   if (!rilevatore) await caricaLettore().catch(() => {});
   scansiona = true; leggi();
 };
+// Ingrandimento della fotocamera (se il telefono lo permette): utile quando il QR è lontano.
+function preparaZoom() {
+  const traccia = flusso?.getVideoTracks()[0], cap = traccia?.getCapabilities?.() || {};
+  const box = $('zoom');
+  if (!cap.zoom || cap.zoom.max <= 1) { box.classList.add('nascosto'); return; }
+  const livelli = [1, 2, 4, 8].filter(z => z >= (cap.zoom.min || 1) && z <= cap.zoom.max);
+  box.innerHTML = livelli.map(z => `<button type="button" data-z="${z}" class="${z === 1 ? 'on' : ''}">${z}×</button>`).join('');
+  box.classList.remove('nascosto');
+  box.querySelectorAll('button').forEach(b => b.onclick = () => {
+    traccia.applyConstraints({ advanced: [{ zoom: Number(b.dataset.z) }] }).catch(() => {});
+    box.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  });
+}
 function chiudiCamera() {
   scansiona = false;
   flusso?.getTracks().forEach(t => t.stop()); flusso = null;
@@ -355,14 +375,22 @@ async function leggi() {
   const v = $('video');
   if (v.readyState >= 2 && v.videoWidth) {
     let testo = null;
+    // A giri alterni si legge l'immagine intera e il centro ingrandito (per i QR lontani e piccoli).
+    giro = !giro;
+    const W = v.videoWidth, H = v.videoHeight, lato = Math.min(W, H) * 0.5;
+    const [sx, sy, sw, sh] = giro ? [0, 0, W, H] : [(W - lato) / 2, (H - lato) / 2, lato, lato];
     try {
-      if (rilevatore) testo = (await rilevatore.detect(v))[0]?.rawValue;
-      else if (window.jsQR) {
-        const k = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight));
-        tela.width = Math.round(v.videoWidth * k); tela.height = Math.round(v.videoHeight * k);
-        ctx.drawImage(v, 0, 0, tela.width, tela.height);
-        const img = ctx.getImageData(0, 0, tela.width, tela.height);
-        testo = window.jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' })?.data;
+      if (rilevatore && giro) testo = (await rilevatore.detect(v))[0]?.rawValue;
+      else {
+        const k = giro ? Math.min(1, 1280 / Math.max(W, H)) : 900 / lato;
+        tela.width = Math.round(sw * k); tela.height = Math.round(sh * k);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(v, sx, sy, sw, sh, 0, 0, tela.width, tela.height);
+        if (rilevatore) testo = (await rilevatore.detect(tela))[0]?.rawValue;
+        else if (window.jsQR) {
+          const img = ctx.getImageData(0, 0, tela.width, tela.height);
+          testo = window.jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' })?.data;
+        }
       }
     } catch (e) {}
     const c = codiceDa(testo);
@@ -437,6 +465,7 @@ function disegna() {
   if (eliminata) return;
   if (sessione?.chiusa) { mostraChiusa(); return; }
   if (!iscritto || inModifica) return;
+  if (iscritto.uscito) { attesa('uscito'); return; }   // segnato come uscito dalla sala: non vota
   if (!vId || !votazione) { attesa(); return; }
   if (votazione.stato !== 'aperta') { attesa('chiusa'); return; }
   if (giaVotato === null) return;
@@ -448,8 +477,10 @@ function attesa(chiusa) {
   $('attesaNome').textContent = nomeVotazione(sessione);
   $('attesaRaduno').textContent = [sessione.raduno, dataBella(sessione.data)].filter(Boolean).join(' · ');
   $('attesaTitolo').classList.toggle('chiusa', !!chiusa);
-  $('attesaTitolo').textContent = chiusa ? 'Votazione chiusa' : 'In attesa della votazione';
-  $('attesaTesto').textContent = chiusa ? 'Attendi la prossima votazione.' : 'Quando il segretario apre la votazione, qui compariranno i nomi.';
+  const uscito = chiusa === 'uscito';
+  $('attesaTitolo').textContent = uscito ? 'Sei segnato come uscito' : chiusa ? 'Votazione chiusa' : 'In attesa della votazione';
+  $('attesaTesto').textContent = uscito ? `Il segretario ti ha segnato come uscito dalla sala alle ${ora(iscritto.uscito)}. Se sei rientrato, avvisalo.`
+    : chiusa ? 'Attendi la prossima votazione.' : 'Quando il segretario apre la votazione, qui compariranno i nomi.';
   schedaDi = null;
   if ($('vAttesa').classList.contains('nascosto')) mostra('vAttesa');
 }
@@ -502,7 +533,7 @@ $('rInvia').onclick = async () => {
   try { localStorage.setItem('mieiDati', JSON.stringify({ nome: dati.nome, cognome: dati.cognome, chiesa: dati.chiesa })); } catch (e) {}
   $('rInvia').disabled = true; $('rErrore').textContent = '';
   try {
-    await setDoc(doc(db, 'sessioni', S, 'iscritti', uid), dati);
+    await setDoc(doc(db, 'sessioni', S, 'iscritti', uid), dati, { merge: true });
     iscritto = dati; inModifica = false; tolto = false;
     disegna();
   } catch (e) {

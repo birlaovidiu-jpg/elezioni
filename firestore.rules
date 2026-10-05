@@ -71,11 +71,15 @@ service cloud.firestore {
         allow create, update: if entrato() && request.auth.uid == uid
           && exists(/databases/$(database)/documents/sessioni/$(s))
           && get(/databases/$(database)/documents/sessioni/$(s)).data.get('chiusa', false) != true
-          && request.resource.data.keys().hasOnly(['nome', 'cognome', 'ruolo', 'chiesa', 't'])
+          && request.resource.data.keys().hasOnly(['nome', 'cognome', 'ruolo', 'chiesa', 't', 'uscito'])
           && testo(request.resource.data.nome, 1, 60)
           && testo(request.resource.data.cognome, 1, 60)
           && testo(request.resource.data.ruolo, 1, 60)
-          && testo(request.resource.data.chiesa, 0, 80);
+          && testo(request.resource.data.chiesa, 0, 80)
+          // «uscito» lo mette e lo toglie solo il segretario
+          && request.resource.data.get('uscito', null) == (resource == null ? null : resource.data.get('uscito', null));
+        // Il segretario segna chi esce dalla sala (e chi rientra), con l'ora.
+        allow update: if segretario(s) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uscito']);
         // Il segretario può togliere chi si è registrato per errore.
         allow delete: if segretario(s);
       }
@@ -94,7 +98,9 @@ service cloud.firestore {
             && request.resource.data.keys().size() == 0
             && get(/databases/$(database)/documents/sessioni/$(s)/votazioni/$(v)).data.stato == 'aperta'
             && get(/databases/$(database)/documents/sessioni/$(s)).data.get('chiusa', false) != true
-            && exists(/databases/$(database)/documents/sessioni/$(s)/iscritti/$(uid));
+            && exists(/databases/$(database)/documents/sessioni/$(s)/iscritti/$(uid))
+            // chi è uscito dalla sala non vota
+            && get(/databases/$(database)/documents/sessioni/$(s)/iscritti/$(uid)).data.get('uscito', null) == null;
           allow delete: if segretario(s);
         }
       }
