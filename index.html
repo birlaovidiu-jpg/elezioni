@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icona-180.png">
 <link rel="icon" href="icona-192.png">
-<link rel="stylesheet" href="stile.css?v=12">
+<link rel="stylesheet" href="stile.css?v=13">
 <style>
   main { max-width: 560px; margin: 0 auto; padding: 18px 16px calc(130px + env(safe-area-inset-bottom)); }
   .titolo-vot { text-align: center; margin: 6px 0 4px; font-size: 26px; font-weight: 800; color: var(--blu-scuro); }
@@ -95,6 +95,8 @@
 
   .scansiona { margin-top: 18px; font-size: 20px; padding: 20px; border-radius: 18px; box-shadow: 0 10px 24px -12px var(--verde); }
   .scansiona span { font-size: 26px; }
+  .bentornato { margin-top: 6px; color: var(--grigio); font-size: 15px; }
+  .bentornato b { color: var(--blu-scuro); }
   .oppure { display: flex; align-items: center; gap: 10px; margin: 22px 0 12px; color: var(--grigio); font-size: 14px; }
   .oppure::before, .oppure::after { content: ''; flex: 1; height: 1px; background: var(--linea); }
   .camera { position: fixed; inset: 0; z-index: 100; background: #000; display: flex; align-items: center; justify-content: center; }
@@ -128,11 +130,13 @@
     <div class="scheda stato">
       <img class="logo-attesa piccolo" src="logo.png" alt="">
       <h2>Entra nella votazione</h2>
+      <div class="bentornato nascosto" id="bentornato"></div>
       <button class="bt largo verde scansiona" id="scansiona" type="button"><span>📷</span> Inquadra il QR code</button>
       <div class="oppure"><span>oppure scrivi il codice</span></div>
       <input class="campo" id="codiceManuale" style="text-align:center;text-transform:uppercase;letter-spacing:4px;font-weight:700" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="CODICE">
       <button class="bt largo" id="vaiCodice" style="margin-top:12px">Entra con il codice</button>
       <div class="errore" id="erroreCodice"></div>
+      <button class="bt largo chiaro nascosto" id="torna" type="button" style="margin-top:14px"></button>
     </div>
   </section>
 
@@ -225,7 +229,7 @@
 
 <script type="module">
 import { controllaVersione, db, COLLEGATO, entra, idCasuale, esc, iniziali, ruoloCompleto, nomeVotazione, dataBella, COLORI,
-         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=12';
+         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=13';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vSenza', 'vCarica', 'vRegistra', 'vAttesa', 'vVota', 'vVotato', 'vChiusa'];
@@ -253,22 +257,42 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 
 // --- Avvio ---
 controllaVersione();
-async function avvio() {
+// I dati di chi vota, ricordati sul telefono dopo la prima registrazione.
+function leggiMieiDati() { try { return JSON.parse(localStorage.getItem('mieiDati')) || {}; } catch (e) { return {}; } }
+
+// Pagina d'ingresso: QR code o codice; se si era già in una votazione, il pulsante per tornarci.
+function paginaIngresso(errore = '') {
+  const ultima = localStorage.getItem('sessione'), nome = localStorage.getItem('ultimaNome');
+  $('torna').classList.toggle('nascosto', !ultima);
+  $('torna').textContent = '↩︎ Torna a: ' + (nome || ultima || '');
+  const d = leggiMieiDati();
+  $('bentornato').classList.toggle('nascosto', !d.nome);
+  $('bentornato').innerHTML = d.nome ? `Ciao <b>${esc(d.nome)} ${esc(d.cognome || '')}</b>, sei già registrato.` : '';
+  $('erroreCodice').textContent = errore;
+  mostra('vSenza');
+}
+
+async function avvio(entraSubito = false) {
   if (!COLLEGATO) { mostra('vCarica'); $('vCarica').querySelector('p').textContent = 'Il programma non è ancora collegato a Firebase.'; return; }
   // Il codice del QR vale se è nuovo; se l'app installata si riapre con un codice vecchio nell'indirizzo,
   // resta quello scritto a mano dopo.
   const dalQR = (new URLSearchParams(location.search).get('s') || '').toUpperCase();
   if (dalQR && dalQR !== localStorage.getItem('ultimoQR')) {
     localStorage.setItem('sessione', dalQR); localStorage.setItem('ultimoQR', dalQR);
+    entraSubito = true;
   }
   S = localStorage.getItem('sessione');
-  if (!S) { mostra('vSenza'); return; }
+  // Aprendo l'app si parte sempre dalla pagina d'ingresso. Si entra subito solo con un QR nuovo,
+  // con il codice, con «Torna a…», oppure se la pagina si è solo ricaricata mentre si era dentro.
+  if (!S || !(entraSubito || sessionStorage.getItem('dentro') === S)) { paginaIngresso(); return; }
+  sessionStorage.setItem('dentro', S);
   mostra('vCarica');
   try { uid = await entra(); }
   catch (e) { $('vCarica').querySelector('p').textContent = 'Non riesco a collegarmi. Controlla Internet e riapri.'; return; }
   const ds = await getDoc(doc(db, 'sessioni', S)).catch(() => null);
-  if (!ds?.exists()) { localStorage.removeItem('sessione'); mostra('vSenza'); $('erroreCodice').textContent = 'Codice non trovato.'; return; }
+  if (!ds?.exists()) { localStorage.removeItem('sessione'); sessionStorage.removeItem('dentro'); paginaIngresso('Codice non trovato.'); return; }
   sessione = ds.data();
+  localStorage.setItem('ultimaNome', nomeVotazione(sessione));
   $('intestazione').textContent = nomeVotazione(sessione);
   $('sottotitolo').textContent = [sessione.raduno, 'Voto segreto'].filter(Boolean).join(' · ');
   if (sessione.chiusa) { mostraChiusa(); bannerInstalla(); return; }
@@ -277,8 +301,9 @@ async function avvio() {
 }
 
 function entraCon(c) {
-  localStorage.setItem('sessione', c); $('erroreCodice').textContent = ''; avvio();
+  localStorage.setItem('sessione', c); $('erroreCodice').textContent = ''; avvio(true);
 }
+$('torna').onclick = () => avvio(true);
 $('vaiCodice').onclick = () => {
   const c = $('codiceManuale').value.trim().toUpperCase();
   if (c.length < 4) { $('erroreCodice').textContent = 'Scrivi il codice.'; return; }
@@ -356,7 +381,7 @@ function ascolta() {
     if (prima && !iscritto && !primoIscritto) tolto = true;
     if (iscritto) tolto = false;
     primoIscritto = false;
-    if (!iscritto) { inModifica = false; registrazione(); }
+    if (!iscritto) { if (!tolto && registraDaSolo()) return; inModifica = false; registrazione(); }
     else disegna();
   });
   onSnapshot(doc(db, 'sessioni', S), snap => {
@@ -377,6 +402,21 @@ function ascolta() {
       disegna();
     });
   });
+}
+
+// Già registrato un'altra volta: ci si registra da soli con i dati ricordati (si possono sempre correggere).
+let giaProvato = false;
+function registraDaSolo() {
+  const d = leggiMieiDati();
+  if (giaProvato || !d.nome || !d.cognome || sessione?.chiusa) return false;
+  const chiesa = sessione.tipo === 'chiesa' ? (sessione.nome || sessione.chiesa || d.chiesa) : d.chiesa;
+  if (!chiesa) return false;
+  giaProvato = true;
+  setDoc(doc(db, 'sessioni', S, 'iscritti', uid), { nome: d.nome, cognome: d.cognome,
+    ruolo: sessione.tipo === 'assemblea' ? 'Delegato' : 'Membro', chiesa, t: serverTimestamp() })
+    .catch(() => { inModifica = false; registrazione(); });
+  mostra('vCarica');
+  return true;
 }
 
 // Mostra la schermata giusta per come stanno le cose adesso.
@@ -425,7 +465,7 @@ function registrazione() {
   $('rErrore').textContent = '';
   $('rNome').value = r?.nome || '';
   $('rCognome').value = r?.cognome || '';
-  const mieiDati = (() => { try { return JSON.parse(localStorage.getItem('mieiDati')) || {}; } catch (e) { return {}; } })();
+  const mieiDati = leggiMieiDati();
   if (!r) { $('rNome').value = mieiDati.nome || ''; $('rCognome').value = mieiDati.cognome || ''; }
   ruolo = sessione.tipo === 'assemblea' ? 'Delegato' : 'Membro';
   $('rRuolo').textContent = ruolo;
@@ -441,7 +481,7 @@ $('rChiesa').oninput = aggiornaRuolo;
 $('correggi').onclick = $('correggi2').onclick = () => { inModifica = true; registrazione(); };
 // Un'altra votazione (per esempio un comitato online): si torna alla pagina del codice.
 $('altra').onclick = $('altra2').onclick = $('altra3').onclick = () => {
-  localStorage.removeItem('sessione'); localStorage.removeItem('ultimoQR');
+  localStorage.removeItem('sessione'); localStorage.removeItem('ultimoQR'); sessionStorage.removeItem('dentro');
   location.replace(location.pathname);
 };
 $('rAnnulla').onclick = () => { inModifica = false; disegna(); };
