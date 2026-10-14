@@ -71,21 +71,28 @@ service cloud.firestore {
         allow create, update: if entrato() && request.auth.uid == uid
           && exists(/databases/$(database)/documents/sessioni/$(s))
           && get(/databases/$(database)/documents/sessioni/$(s)).data.get('chiusa', false) != true
-          && request.resource.data.keys().hasOnly(['nome', 'cognome', 'ruolo', 'chiesa', 't', 'uscito'])
+          && request.resource.data.keys().hasOnly(['nome', 'cognome', 'ruolo', 'chiesa', 't', 'uscito', 'stato'])
           && testo(request.resource.data.nome, 1, 60)
           && testo(request.resource.data.cognome, 1, 60)
           && testo(request.resource.data.ruolo, 1, 60)
           && testo(request.resource.data.chiesa, 0, 80)
-          // «uscito» lo mette e lo toglie solo il segretario
-          && request.resource.data.get('uscito', null) == (resource == null ? null : resource.data.get('uscito', null));
-        // Il segretario segna chi esce dalla sala (e chi rientra), con l'ora.
-        allow update: if segretario(s) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uscito']);
+          // chi vota può segnare da solo la propria uscita (con l'ora del server); toglierla solo il segretario
+          && (request.resource.data.get('uscito', null) == (resource == null ? null : resource.data.get('uscito', null))
+            || (resource != null && resource.data.get('uscito', null) == null && request.resource.data.get('uscito', null) == request.time))
+          // chi si registra entra «in attesa»; «stato» lo cambia solo il segretario
+          // (chi era già registrato prima non ha «stato» ed è approvato)
+          && request.resource.data.get('stato', null) == (resource == null ? 'attesa' : resource.data.get('stato', null));
+        // Il segretario segna chi esce dalla sala (e chi rientra), con l'ora, e approva o rifiuta chi è in attesa.
+        allow update: if segretario(s) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uscito', 'stato']);
         // Il segretario può togliere chi si è registrato per errore.
         allow delete: if segretario(s);
       }
 
       match /votazioni/{v} {
-        allow read: if entrato();
+        // Le votazioni le vede solo chi è stato approvato dal segretario.
+        allow read: if entrato() && (segretario(s)
+          || (exists(/databases/$(database)/documents/sessioni/$(s)/iscritti/$(request.auth.uid))
+            && get(/databases/$(database)/documents/sessioni/$(s)/iscritti/$(request.auth.uid)).data.get('stato', null) == null));
         // Nessuna votazione nuova quando la sessione è chiusa.
         allow create: if segretario(s)
           && get(/databases/$(database)/documents/sessioni/$(s)).data.get('chiusa', false) != true;
@@ -100,7 +107,9 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/sessioni/$(s)).data.get('chiusa', false) != true
             && exists(/databases/$(database)/documents/sessioni/$(s)/iscritti/$(uid))
             // chi è uscito dalla sala non vota
-            && get(/databases/$(database)/documents/sessioni/$(s)/iscritti/$(uid)).data.get('uscito', null) == null;
+            && get(/databases/$(database)/documents/sessioni/$(s)/iscritti/$(uid)).data.get('uscito', null) == null
+            // chi è in attesa o rifiutato non vota
+            && get(/databases/$(database)/documents/sessioni/$(s)/iscritti/$(uid)).data.get('stato', null) == null;
           allow delete: if segretario(s);
         }
       }

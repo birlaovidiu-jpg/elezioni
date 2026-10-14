@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Elezioni e Votazioni</title>
 <meta name="theme-color" content="#0f1f4d">
-<link rel="icon" href="icona-192.png">
-<link rel="apple-touch-icon" href="icona-180.png">
-<link rel="stylesheet" href="stile.css?v=17">
+<link rel="icon" href="app-192.png?v=19">
+<link rel="apple-touch-icon" href="app-180.png?v=19">
+<link rel="stylesheet" href="stile.css?v=19">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -130,6 +130,11 @@
   .etic-chiusa { padding: 10px 16px; border-radius: 12px; background: #fee2e2; color: var(--rosso); font-weight: 900; letter-spacing: .5px; }
   .avviso-chiusa { background: #fff1f1; border-color: #f3c4c4; color: #7f1d1d; font-size: 16px; }
   .sess-chiusa .iscritto .togli, .sess-chiusa .iscritto .esce { display: none; }
+  .attese { margin-top: 10px; border: 2px solid #f59e0b; background: #fffbeb; border-radius: 12px; padding: 6px 10px; }
+  .attese-tit { font-weight: 800; font-size: 14px; color: #92400e; padding: 4px 0; }
+  .attese .accetta { flex: none; border: 0; background: #16a34a; color: #fff; border-radius: 10px; padding: 8px 12px; font-size: 14px; font-weight: 800; }
+  .attese .rifiuta { flex: none; border: 1.5px solid var(--linea); background: #fff; color: var(--rosso); border-radius: 10px; padding: 7px 10px; font-size: 13px; font-weight: 700; }
+  .sess-chiusa .attese { display: none; }
   .iscritto .esce { flex: none; border: 1.5px solid var(--linea); background: #fff; border-radius: 10px; padding: 6px 10px; font-size: 13px; font-weight: 700; color: var(--blu-scuro); }
   .iscritto .esce:hover { border-color: var(--blu); }
   .iscritto.fuori-sala b, .iscritto.fuori-sala span { opacity: .5; }
@@ -322,6 +327,7 @@
         <div class="piccolo" id="sVotantiNota">Per vincere servono più della metà di questo numero.</div>
       </div>
       <div class="contatore"><b id="nIscritti">0</b><span class="piccolo" id="nIscrittiEt">registrati</span></div>
+      <div class="attese nascosto" id="attese"></div>
       <div class="iscritti" id="iscritti"></div>
     </aside>
 
@@ -431,12 +437,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=17';
-import { creaRapporto } from './rapporto.js?v=17';
+import qrcode from './qrcode.mjs?v=19';
+import { creaRapporto } from './rapporto.js?v=19';
 import { controllaVersione, ora, linkVoto, db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=17';
+  from './comune.js?v=19';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
@@ -450,7 +456,7 @@ function mostra(v) {
 
 let io = null;                 // chi è entrato: { uid, utente, nome, direttore }
 let S, sessione, ascoltatori = [];
-let votazioni = [], iscritti = [], votati = new Set(), fermaVotati = null, votatiDi = null;
+let iscrittiPronti = false, votazioni = [], iscritti = [], votati = new Set(), fermaVotati = null, votatiDi = null;
 let vistaRis = null;           // votazione chiusa di cui si vede la scheda dei risultati
 let sessioni = [], persone = [], filtro = 'tutti', fermaArchivio = null, fermaPersone = null;
 
@@ -629,7 +635,7 @@ function titoliSessione(x) {
 
 async function apriSessione(s) {
   chiudiAscolto();
-  S = s; vistaRis = null; votazioni = []; iscritti = []; votati = new Set(); sessione = null;
+  S = s; vistaRis = null; iscrittiPronti = false; votazioni = []; iscritti = []; votati = new Set(); sessione = null;
   const nota = sessioni.find(x => x.s === S) || { s };
   // La pagina si apre subito con quello che so già; i dati arrivano mentre la si guarda.
   titoliSessione(nota);
@@ -644,7 +650,32 @@ async function apriSessione(s) {
   mostra('vSess');
 
   ascoltatori.push(onSnapshot(collection(db, 'sessioni', S, 'iscritti'), snap => {
-    iscritti = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.cognome + a.nome).localeCompare(b.cognome + b.nome, 'it'));
+    // Uno ha segnato da solo l'uscita dal suo telefono: i votanti scendono di uno (come col pulsante «Uscito»).
+    if (iscrittiPronti) snap.docChanges().forEach(c => {
+      if (c.type !== 'modified' || c.doc.metadata.hasPendingWrites || !c.doc.data().uscito || c.doc.data().stato) return;
+      if (iscritti.find(r => r.id === c.doc.id)?.uscito) return;
+      if (sessione.votanti > 0) updateDoc(doc(db, 'sessioni', S), { votanti: Math.max(1, sessione.votanti - 1) }).catch(() => {});
+    });
+    iscrittiPronti = true;
+    const tutti = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.cognome + a.nome).localeCompare(b.cognome + b.nome, 'it'));
+    // Chi ha «stato» (in attesa / rifiutato) non è ancora dentro: aspetta il segretario.
+    iscritti = tutti.filter(r => !r.stato);
+    const inAttesa = tutti.filter(r => r.stato);
+    $('attese').classList.toggle('nascosto', !inAttesa.length);
+    $('attese').innerHTML = inAttesa.length ? `<div class="attese-tit">⏳ In attesa della tua approvazione (${inAttesa.filter(r => r.stato === 'attesa').length})</div>` +
+      inAttesa.map(r => `<div class="iscritto"><div><b>${esc(r.cognome)} ${esc(r.nome)}</b><span>${esc(ruoloCompleto(r))}${r.stato === 'rifiutato' ? ' · rifiutato' : ''}</span></div>
+        <button class="accetta" type="button" data-id="${esc(r.id)}">Accetta</button>
+        ${r.stato === 'rifiutato' ? '' : `<button class="rifiuta" type="button" data-id="${esc(r.id)}">Rifiuta</button>`}</div>`).join('') : '';
+    $('attese').querySelectorAll('.accetta').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      try { await updateDoc(doc(db, 'sessioni', S, 'iscritti', b.dataset.id), { stato: deleteField() }); }
+      catch (e) { console.warn(e); alert('Non sono riuscito. Riprova.'); b.disabled = false; }
+    });
+    $('attese').querySelectorAll('.rifiuta').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      try { await updateDoc(doc(db, 'sessioni', S, 'iscritti', b.dataset.id), { stato: 'rifiutato' }); }
+      catch (e) { console.warn(e); alert('Non sono riuscito. Riprova.'); b.disabled = false; }
+    });
     const usciti = iscritti.filter(r => r.uscito).length;
     $('nIscritti').textContent = iscritti.length - usciti;
     $('nIscrittiEt').textContent = usciti ? `presenti · ${usciti} ${usciti === 1 ? 'uscito' : 'usciti'}` : 'registrati';

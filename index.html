@@ -10,9 +10,9 @@
 <meta name="apple-mobile-web-app-title" content="Elezioni">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icona-180.png">
-<link rel="icon" href="icona-192.png">
-<link rel="stylesheet" href="stile.css?v=17">
+<link rel="apple-touch-icon" href="app-180.png?v=19">
+<link rel="icon" href="app-192.png?v=19">
+<link rel="stylesheet" href="stile.css?v=19">
 <style>
   main { max-width: 560px; margin: 0 auto; padding: 18px 16px calc(130px + env(safe-area-inset-bottom)); }
   .titolo-vot { text-align: center; margin: 6px 0 4px; font-size: 26px; font-weight: 800; color: var(--blu-scuro); }
@@ -184,6 +184,7 @@
     </div>
     <div class="scheda" style="margin-top:16px">
       <div class="tessera" id="tessera" style="margin-top:0"></div>
+      <button class="bt largo chiaro" id="esco" style="margin-top:14px;font-size:15px;padding:11px;color:#b91c1c">🚪 Esco dall'assemblea</button>
       <button class="bt largo chiaro" id="correggi" style="margin-top:14px;font-size:15px;padding:11px">✏️ Correggi i miei dati</button>
       <button class="bt largo chiaro" id="altra" style="margin-top:10px;font-size:15px;padding:11px">🔑 Entra in un'altra votazione con un codice</button>
     </div>
@@ -206,6 +207,7 @@
       <h2>Voto registrato</h2>
       <p id="votatoTesto">Grazie. Il tuo voto è arrivato ed è segreto.<br>I risultati li vedrà il segretario alla fine della votazione.</p>
     </div>
+    <button class="bt largo chiaro" id="esco2" style="margin-top:16px;font-size:15px;padding:11px;color:#b91c1c">🚪 Esco dall'assemblea</button>
     <button class="bt largo chiaro" id="correggi2" style="margin-top:16px;font-size:15px;padding:11px">✏️ Correggi i miei dati</button>
     <button class="bt largo chiaro" id="altra2" style="margin-top:10px;font-size:15px;padding:11px">🔑 Entra in un'altra votazione con un codice</button>
   </section>
@@ -234,14 +236,14 @@
 
 <script type="module">
 import { controllaVersione, ora, db, COLLEGATO, entra, idCasuale, esc, iniziali, ruoloCompleto, nomeVotazione, dataBella, COLORI,
-         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=17';
+         doc, getDoc, setDoc, onSnapshot, writeBatch, serverTimestamp } from './comune.js?v=19';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vSenza', 'vCarica', 'vRegistra', 'vAttesa', 'vVota', 'vVotato', 'vChiusa'];
 function mostra(v) { VISTE.forEach(x => $(x).classList.toggle('nascosto', x !== v)); scrollTo(0, 0); }
 
 
-let uid, S, sessione, iscritto, votazione, vId, fermaVot, giaVotato = null, inModifica = false, tolto = false, schedaDi = null;
+let uid, S, sessione, iscritto, votazione, vId, fermaVot, agganciata = null, giaVotato = null, inModifica = false, tolto = false, schedaDi = null;
 let scelte = new Set(), bianca = false, sn = null;   // sn: 'si' / 'no' quando c'è un solo nome
 
 // --- Installazione sul telefono ---
@@ -411,7 +413,7 @@ function ascolta() {
     if (iscritto) tolto = false;
     primoIscritto = false;
     if (!iscritto) { if (!tolto && registraDaSolo()) return; inModifica = false; registrazione(); }
-    else disegna();
+    else { agganciaVotazione(); disegna(); }
   });
   onSnapshot(doc(db, 'sessioni', S), snap => {
     // Il segretario ha eliminato la sessione: si torna alla pagina d'ingresso.
@@ -425,8 +427,17 @@ function ascolta() {
     if (sessione.chiusa) { mostraChiusa(); return; }
     const nuovo = sessione.corrente || null;
     if (nuovo === vId) return;
-    vId = nuovo; votazione = null; giaVotato = null; schedaDi = null; fermaVot?.(); fermaVot = null;
-    if (!vId) { disegna(); return; }
+    vId = nuovo; votazione = null; giaVotato = null; schedaDi = null; fermaVot?.(); fermaVot = null; agganciata = null;
+    agganciaVotazione();
+  });
+}
+// La votazione si segue solo da approvati (le regole non la fanno leggere a chi aspetta).
+function agganciaVotazione() {
+  if (!vId) { disegna(); return; }
+  if (!iscritto || iscritto.stato) { disegna(); return; }
+  if (agganciata === vId) return;
+  agganciata = vId;
+  {
     const questa = vId;
     fermaVot = onSnapshot(doc(db, 'sessioni', S, 'votazioni', vId), async sv => {
       votazione = sv.data();
@@ -437,7 +448,7 @@ function ascolta() {
       }
       disegna();
     });
-  });
+  }
 }
 
 // Già registrato un'altra volta: ci si registra da soli con i dati ricordati (si possono sempre correggere).
@@ -449,7 +460,7 @@ function registraDaSolo() {
   if (!chiesa) return false;
   giaProvato = true;
   setDoc(doc(db, 'sessioni', S, 'iscritti', uid), { nome: d.nome, cognome: d.cognome,
-    ruolo: sessione.tipo === 'assemblea' ? 'Delegato' : 'Membro', chiesa, t: serverTimestamp() })
+    ruolo: sessione.tipo === 'assemblea' ? 'Delegato' : 'Membro', chiesa, t: serverTimestamp(), stato: 'attesa' })
     .catch(() => { inModifica = false; registrazione(); });
   mostra('vCarica');
   return true;
@@ -465,6 +476,7 @@ function disegna() {
   if (eliminata) return;
   if (sessione?.chiusa) { mostraChiusa(); return; }
   if (!iscritto || inModifica) return;
+  if (iscritto.stato) { attesa(iscritto.stato === 'rifiutato' ? 'rifiutato' : 'approvazione'); return; }   // non ancora approvato dal segretario
   if (iscritto.uscito) { attesa('uscito'); return; }   // segnato come uscito dalla sala: non vota
   if (!vId || !votazione) { attesa(); return; }
   if (votazione.stato !== 'aperta') { attesa('chiusa'); return; }
@@ -478,8 +490,18 @@ function attesa(chiusa) {
   $('attesaRaduno').textContent = [sessione.raduno, dataBella(sessione.data)].filter(Boolean).join(' · ');
   $('attesaTitolo').classList.toggle('chiusa', !!chiusa);
   const uscito = chiusa === 'uscito';
+  $('esco').classList.toggle('nascosto', uscito);
+  if (chiusa === 'approvazione' || chiusa === 'rifiutato') {
+    const ok = chiusa === 'approvazione';
+    $('attesaTitolo').textContent = ok ? 'In attesa dell\'approvazione del segretario' : 'Richiesta rifiutata';
+    $('attesaTesto').textContent = ok ? 'Appena il segretario ti accetta potrai votare. Non chiudere questa pagina: si aggiorna da sola.'
+      : 'Il segretario non ti ha accettato. Se è un errore, parla con lui.';
+    schedaDi = null;
+    if ($('vAttesa').classList.contains('nascosto')) mostra('vAttesa');
+    return;
+  }
   $('attesaTitolo').textContent = uscito ? 'Sei segnato come uscito' : chiusa ? 'Votazione chiusa' : 'In attesa della votazione';
-  $('attesaTesto').textContent = uscito ? `Il segretario ti ha segnato come uscito dalla sala alle ${ora(iscritto.uscito)}. Se sei rientrato, avvisalo.`
+  $('attesaTesto').textContent = uscito ? `Risulti uscito dall'assemblea alle ${ora(iscritto.uscito)}. Se sei rientrato, avvisa il segretario.`
     : chiusa ? 'Attendi la prossima votazione.' : 'Quando il segretario apre la votazione, qui compariranno i nomi.';
   schedaDi = null;
   if ($('vAttesa').classList.contains('nascosto')) mostra('vAttesa');
@@ -518,6 +540,12 @@ function aggiornaRuolo() {
   $('rAnteprima').innerHTML = `Il tuo ruolo: <b>${esc(ruolo)}${ch ? ' chiesa ' + esc(ch) : ''}</b>`;
 }
 $('rChiesa').oninput = aggiornaRuolo;
+// Chi se ne va lo segna da solo: resta l'ora (solo il segretario può rimetterlo dentro).
+$('esco').onclick = $('esco2').onclick = async () => {
+  if (!confirm('Vuoi segnare che stai uscendo dall\'assemblea?\nDa quel momento non potrai più votare, a meno che il segretario ti rimetta dentro.')) return;
+  try { await setDoc(doc(db, 'sessioni', S, 'iscritti', uid), { uscito: serverTimestamp() }, { merge: true }); }
+  catch (e) { alert('Non sono riuscito. Riprova.'); }
+};
 $('correggi').onclick = $('correggi2').onclick = () => { inModifica = true; registrazione(); };
 // Un'altra votazione (per esempio un comitato online): si torna alla pagina del codice.
 $('altra').onclick = $('altra2').onclick = $('altra3').onclick = () => {
@@ -528,13 +556,14 @@ $('rAnnulla').onclick = () => { inModifica = false; disegna(); };
 $('rInvia').onclick = async () => {
   const pulisci = t => t.trim().replace(/\s+/g, ' ');
   const dati = { nome: pulisci($('rNome').value), cognome: pulisci($('rCognome').value), ruolo, chiesa: pulisci($('rChiesa').value), t: serverTimestamp() };
+  if (!iscritto) dati.stato = 'attesa';   // chi si registra aspetta l'approvazione del segretario
   if (!dati.nome || !dati.cognome) { $('rErrore').textContent = 'Scrivi nome e cognome.'; return; }
   if (!dati.chiesa) { $('rErrore').textContent = 'Scrivi la tua chiesa.'; return; }
   try { localStorage.setItem('mieiDati', JSON.stringify({ nome: dati.nome, cognome: dati.cognome, chiesa: dati.chiesa })); } catch (e) {}
   $('rInvia').disabled = true; $('rErrore').textContent = '';
   try {
     await setDoc(doc(db, 'sessioni', S, 'iscritti', uid), dati, { merge: true });
-    iscritto = dati; inModifica = false; tolto = false;
+    iscritto = { ...iscritto, ...dati }; inModifica = false; tolto = false;
     disegna();
   } catch (e) {
     $('rErrore').textContent = 'Non sono riuscito a salvare. Riprova.';

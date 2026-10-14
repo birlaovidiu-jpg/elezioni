@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Proiezione – Elezioni e Votazioni</title>
 <meta name="theme-color" content="#0b1838">
-<link rel="icon" href="icona-192.png">
+<link rel="icon" href="app-192.png?v=19">
 <style>
   :root { --sfondo1: #0b1838; --sfondo2: #13306f; --bianco: #fff; --tenue: rgba(255,255,255,.72); --verde: #22c55e; --arancio: #f5a524; }
   * { box-sizing: border-box; }
@@ -107,8 +107,8 @@
 <button class="tasto" id="tutto">⛶ Tutto schermo</button>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=17';
-import { controllaVersione, linkVoto, db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, righeRisultato, notaNessuno, doc, collection, onSnapshot } from './comune.js?v=17';
+import qrcode from './qrcode.mjs?v=19';
+import { controllaVersione, linkVoto, db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, righeRisultato, notaNessuno, doc, collection, onSnapshot } from './comune.js?v=19';
 
 const $ = id => document.getElementById(id);
 const S = (new URLSearchParams(location.search).get('s') || '').toUpperCase();
@@ -229,7 +229,7 @@ controllaVersione();
     sessione = snap.data(); seguiVotazione(sessione?.corrente || null); disegna(); },
     () => { $('corpo').innerHTML = '<div class="messaggio">Non puoi aprire questa sessione.</div>'; });
   onSnapshot(collection(db, 'sessioni', S, 'iscritti'), snap => {
-    presenti = new Set(snap.docs.filter(d => !d.data().uscito).map(d => d.id)); disegna(); }, () => {});
+    presenti = new Set(snap.docs.filter(d => !d.data().uscito && !d.data().stato).map(d => d.id)); disegna(); }, () => {});
 })();
 </script>
 </body>
