@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Proiezione – Elezioni e Votazioni</title>
 <meta name="theme-color" content="#0b1838">
-<link rel="icon" href="app-192.png?v=22">
+<link rel="icon" href="app-192.png?v=23">
 <style>
   :root { --sfondo1: #0b1838; --sfondo2: #13306f; --bianco: #fff; --tenue: rgba(255,255,255,.72); --verde: #22c55e; --arancio: #f5a524; }
   * { box-sizing: border-box; }
@@ -107,8 +107,8 @@
 <button class="tasto" id="tutto">⛶ Tutto schermo</button>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=22';
-import { controllaVersione, linkVoto, db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, righeRisultato, notaNessuno, doc, collection, onSnapshot } from './comune.js?v=22';
+import qrcode from './qrcode.mjs?v=23';
+import { controllaVersione, linkVoto, db, auth, COLORI, nomeVotazione, dataBella, iniziali, esc, righeRisultato, notaNessuno, doc, collection, onSnapshot } from './comune.js?v=23';
 
 const $ = id => document.getElementById(id);
 const S = (new URLSearchParams(location.search).get('s') || '').toUpperCase();

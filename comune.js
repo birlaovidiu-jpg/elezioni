@@ -5,7 +5,7 @@ import { getAuth, signInAnonymously, connectAuthEmulator, signInWithEmailAndPass
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { initializeFirestore, connectFirestoreEmulator, doc, getDoc }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import { FIREBASE } from './config.js?v=22';
+import { FIREBASE } from './config.js?v=23';
 
 export * from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
@@ -19,9 +19,9 @@ function collegaAuth(a) { if (PROVA) connectAuthEmulator(a, `http://${location.h
 if (COLLEGATO) {
   app = initializeApp(CONFIG);
   auth = getAuth(app);
-  // Collegamento «a richieste brevi» invece del canale continuo: con alcuni browser e reti (Safari,
-  // antivirus, router) il canale continuo restava fermo anche 30 secondi prima di consegnare i cambiamenti.
-  db = initializeFirestore(app, { experimentalForceLongPolling: true });
+  // Canale continuo (il più veloce); se la rete lo blocca (Safari, antivirus, router) passa da solo
+  // alle «richieste brevi», che prima restavano ferme anche 30 secondi.
+  db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
   collegaAuth(auth);
   if (PROVA) connectFirestoreEmulator(db, location.hostname, 8080);
 }
@@ -29,7 +29,7 @@ export { db, auth };
 
 // ---------- Versione: se su Internet ce n'è una più nuova, la pagina si ricarica da sola ----------
 // (va cambiata insieme a versione.txt e ai «?v=» delle pagine a ogni pubblicazione)
-export const VERSIONE = '22';
+export const VERSIONE = '23';
 export async function controllaVersione() {
   try {
     const r = await fetch('versione.txt?x=' + Date.now(), { cache: 'no-store' });
