@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Elezioni e Votazioni</title>
 <meta name="theme-color" content="#0f1f4d">
-<link rel="icon" href="app-192.png?v=21">
-<link rel="apple-touch-icon" href="app-180.png?v=21">
-<link rel="stylesheet" href="stile.css?v=21">
+<link rel="manifest" href="manifest-segretario.json?v=22">
+<link rel="icon" href="app-192.png?v=22">
+<link rel="apple-touch-icon" href="app-180.png?v=22">
+<link rel="stylesheet" href="stile.css?v=22">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -437,12 +438,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=21';
-import { creaRapporto } from './rapporto.js?v=21';
+import qrcode from './qrcode.mjs?v=22';
+import { creaRapporto } from './rapporto.js?v=22';
 import { controllaVersione, ora, linkVoto, db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=21';
+  from './comune.js?v=22';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
