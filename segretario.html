@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Elezioni e Votazioni</title>
 <meta name="theme-color" content="#0f1f4d">
-<link rel="icon" href="app-192.png?v=20">
-<link rel="apple-touch-icon" href="app-180.png?v=20">
-<link rel="stylesheet" href="stile.css?v=20">
+<link rel="icon" href="app-192.png?v=21">
+<link rel="apple-touch-icon" href="app-180.png?v=21">
+<link rel="stylesheet" href="stile.css?v=21">
 <style>
   .testata .destra { margin-left: auto; display: flex; gap: 10px; }
   .testata .bt { padding: 10px 16px; font-size: 15px; background: rgba(255,255,255,.14); }
@@ -437,12 +437,12 @@
 <div class="velo nascosto" id="velo"><div><div class="qr-grande" id="qrGrande"></div><div class="codice-grande" id="codGrande"></div></div></div>
 
 <script type="module">
-import qrcode from './qrcode.mjs?v=20';
-import { creaRapporto } from './rapporto.js?v=20';
+import qrcode from './qrcode.mjs?v=21';
+import { creaRapporto } from './rapporto.js?v=21';
 import { controllaVersione, ora, linkVoto, db, auth, COLLEGATO, CHIESA, TIPI, TUTTI_I_TIPI, nomeVotazione, codice, esc, iniziali, ruoloCompleto, conta, dataBella, righeRisultato, notaNessuno,
          chiSono, quandoCambiaAccesso, accedi, creaDirettore, esci, cambiaPassword, creaAccount, messaggioErrore, pulisciUtente, DIRETTORE,
          doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, collection, query, where, orderBy, onSnapshot, writeBatch, serverTimestamp }
-  from './comune.js?v=20';
+  from './comune.js?v=21';
 
 const $ = id => document.getElementById(id);
 const VISTE = ['vCarica', 'vAccesso', 'vHome', 'vSess', 'vImpost'];
@@ -804,7 +804,17 @@ function disegnaStorico() {
 }
 
 // Chi ha votato e chi no: si può chiudere solo quando hanno votato tutti i registrati.
+// Si apre una votazione solo quando si sono registrati (e approvati) tutti i votanti.
+function mancanoRegistrati() {
+  const presenti = iscritti.filter(r => !r.uscito).length;
+  return sessione?.votanti > 0 ? Math.max(0, sessione.votanti - presenti) : 0;
+}
+function testoMancano(n) { return `Non si può aprire la votazione: ${n === 1 ? 'manca 1 persona' : `mancano ${n} persone`} da registrare (votanti ${sessione.votanti}).`; }
 function stato() {
+  const m = mancanoRegistrati();
+  $('avvia').disabled = m > 0;
+  if (m > 0) $('avviaErr').textContent = testoMancano(m);
+  else if ($('avviaErr').textContent.startsWith('Non si può aprire la votazione')) $('avviaErr').textContent = '';
   const c = corrente();
   if (!c || c.stato !== 'aperta') return;
   // Chi è uscito dalla sala non conta più.
@@ -817,10 +827,11 @@ function stato() {
   const riga = (r, cl) => `<div class="p ${cl}">${esc(r.cognome)} ${esc(r.nome)}<span>${esc(ruoloCompleto(r))}</span></div>`;
   $('nNo').textContent = no.length; $('lNo').innerHTML = no.map(r => riga(r, 'no')).join('');
   $('nSi').textContent = si.length; $('lSi').innerHTML = si.map(r => riga(r, 'si')).join('');
-  const tutti = presenti.length > 0 && no.length === 0;
+  const tutti = presenti.length > 0 && no.length === 0 && votati.size >= tot;
   $('cTutti').classList.toggle('nascosto', !tutti);
   $('fine').disabled = !tutti;
   $('cManca').textContent = tutti ? '' : !presenti.length ? 'Non c\'è ancora nessun registrato.'
+    : !no.length ? `Non si può ancora chiudere: hanno votato ${votati.size} su ${tot}.`
     : `Non si può ancora chiudere: ${no.length === 1 ? 'manca 1 voto' : `mancano ${no.length} voti`}.`;
 }
 
@@ -851,6 +862,7 @@ $('avvia').onclick = async () => {
   const titolo = $('vTit').value.trim().replace(/\s+/g, ' ');
   const candidati = [...$('righe').querySelectorAll('input')].map(i => i.value.trim().replace(/\s+/g, ' ')).filter(Boolean);
   $('avviaErr').textContent = '';
+  if (mancanoRegistrati() > 0) { $('avviaErr').textContent = testoMancano(mancanoRegistrati()); return; }
   if (!titolo) { $('avviaErr').textContent = 'Scrivi per cosa si vota.'; return; }
   if (!candidati.length) { $('avviaErr').textContent = 'Scrivi almeno un nome.'; return; }
   if (new Set(candidati.map(n => n.toLowerCase())).size !== candidati.length) { $('avviaErr').textContent = 'C\'è un nome scritto due volte.'; return; }
@@ -863,6 +875,7 @@ $('avvia').onclick = async () => {
 };
 async function apriVotazione(titolo, candidati, scelte, da) {
   if (sessione.chiusa) { alert('La sessione è chiusa: non si possono aprire altre votazioni.'); return false; }
+  if (mancanoRegistrati() > 0) { alert(testoMancano(mancanoRegistrati())); return false; }
   const votanti = sessione.votanti > 0 ? sessione.votanti : null;
   const v = String(Date.now());
   const n = votazioni.length + 1;
@@ -925,7 +938,7 @@ async function mostraGruppo(idPrima) {
     if (!confirm(`Aprire il ballottaggio tra:\n${nomi.join('\n')}?`)) return;
     $('avviaBallo').disabled = true;
     const titolo = 'Ballottaggio – ' + v.titolo.replace(/^Ballottaggio – /, '');
-    if (!await apriVotazione(titolo, nomi, r.posti, v.id)) { $('avviaBallo').disabled = false; alert('Non sono riuscito ad aprire il ballottaggio. Riprova.'); }
+    if (!await apriVotazione(titolo, nomi, r.posti, v.id)) { $('avviaBallo').disabled = false; if (!mancanoRegistrati()) alert('Non sono riuscito ad aprire il ballottaggio. Riprova.'); }
   });
 }
 function bloccoRisultato(v, r, etichetta, ultimo) {
